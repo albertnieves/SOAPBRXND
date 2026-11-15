@@ -1,22 +1,17 @@
-import Link from 'next/link';
+import { Washer } from '@/components/Washer';
 import { getCatalog } from '@/modules/catalog/source';
-import { piezas } from '@/modules/catalog/domain';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Drops' };
+export const metadata = { title: 'Drops', description: 'Cada lavadora es un drop: las que giran están a la venta.' };
 
 export default async function Drops() {
   const view = await getCatalog();
   return (
     <>
-      <p className="eyebrow">Cada lavadora es un drop</p>
       <h1>Drops</h1>
-      <div className="grid">
-        {view.visibleDrops().map((d) => (
-          <Link key={d.id} href={`/drops/${d.slug}`} className="card">
-            <div className="card-meta"><span className={`phase ${view.phaseOf(d)}`}>{view.phaseOf(d).toUpperCase()}</span><strong>{d.number} · {d.name}</strong><span>{piezas(view.productsOfDrop(d.id).length)}</span></div>
-          </Link>
-        ))}
+      <p className="tk-lede">Cada lavadora es un drop. Las que giran están a la venta; las demás esperan su turno.</p>
+      <div className="tk-washers" style={{ marginTop: 28 }}>
+        {view.visibleDrops().map((d) => <Washer key={d.id} drop={d} view={view} as="a" href={`/drops/${d.slug}`} />)}
       </div>
     </>
   );

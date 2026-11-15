@@ -53,6 +53,9 @@ export type Support = {
   wear: { slot: 'top' | 'head'; kind: 'hoodie' | 'tee' | 'beanie' | 'cap' } | null;
 };
 
+/** Foto real de un producto (Supabase Storage). Sin fotos se enseña el mockup de pixel. */
+export type ProductImage = { url: string; alt: string; position: number };
+
 export type Product = {
   id: string;
   slug: string;
@@ -64,6 +67,7 @@ export type Product = {
   care: string;
   /** Color base para el pixel art de la sala. */
   color: string;
+  images?: ProductImage[];
 };
 
 export type Variant = {

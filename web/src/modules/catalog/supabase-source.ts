@@ -13,9 +13,9 @@ export async function supabaseData(url: string, anonKey: string): Promise<Catalo
     if (error) throw new Error(`catalog:${table}:${error.message}`);
     return (data ?? []) as unknown as Row[];
   };
-  const [drops, artworks, supports, products, variants, catalog] = await Promise.all([
+  const [drops, artworks, supports, products, variants, catalog, images] = await Promise.all([
     read('drops'), read('artworks'), read('supports'), read('products'), read('variants'),
-    read('catalog_variants', 'variant_id, available'),
+    read('catalog_variants', 'variant_id, available'), read('product_images', 'product_id, url, alt, position'),
   ]);
   const available = new Map(catalog.map((r) => [String(r.variant_id), Number(r.available)]));
   return {
@@ -34,6 +34,7 @@ export async function supabaseData(url: string, anonKey: string): Promise<Catalo
     products: products.map((r): Product => ({
       id: String(r.id), slug: String(r.slug), dropId: String(r.drop_id), artworkId: String(r.artwork_id), supportId: String(r.support_id),
       name: String(r.name), description: String(r.description ?? ''), care: String(r.care ?? ''), color: String(r.color ?? '#1a1a1e'),
+      images: images.filter((i) => String(i.product_id) === String(r.id)).map((i) => ({ url: String(i.url), alt: String(i.alt ?? ''), position: Number(i.position ?? 0) })),
     })),
     variants: variants.filter((r) => available.has(String(r.id))).map((r) => ({
       id: String(r.id), productId: String(r.product_id), sku: String(r.sku), options: (r.options as Record<string, string>) ?? {},

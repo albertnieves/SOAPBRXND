@@ -1,5 +1,6 @@
 /* Lavandería pixel (portada). Generado desde miniverso/index.html y adaptado. */
 #lavanderia { position: fixed; inset: 0; z-index: 100; background: var(--ink); color: var(--paper); font-family: var(--mono); overflow: hidden; }
+#lavanderia:empty { display: none; }
 #lavanderia a { color: inherit; text-decoration: none; }
 #lavanderia .card:hover, #lavanderia .card:focus-visible { transform: none; box-shadow: 0 0 0 2px var(--paper); }
 #lavanderia .seo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

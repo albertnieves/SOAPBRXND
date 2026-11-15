@@ -166,6 +166,14 @@ describe('permisos', () => {
     expect(arts.map((a) => a.slug)).not.toContain('secreto');
     expect(arts.length).toBe(6);
   });
+  it('las fotos de producto son públicas solo si su producto lo es', async () => {
+    await db.exec(`insert into public.product_images (product_id, url, alt, position)
+      select p.id, 'https://x.supabase.co/storage/v1/object/public/productos/' || p.slug || '.jpg', p.name, 0 from public.products p`);
+    const rows = await as<{ url: string }>(db, 'anon', 'select url from public.product_images');
+    expect(rows.length).toBe(9);
+    await db.exec(`update public.drops set draft = true where slug = 'locked-drop'`);
+    expect((await as(db, 'anon', 'select url from public.product_images')).length).toBe(8);
+  });
   it('anon no ve pedidos ni reservas ni puede crear pedidos', async () => {
     await expect(as(db, 'anon', 'select * from public.orders')).rejects.toThrow(/permission denied/);
     await expect(as(db, 'anon', 'select * from public.holds')).rejects.toThrow(/permission denied/);

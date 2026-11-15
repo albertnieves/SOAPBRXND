@@ -1,5 +1,5 @@
 /* Vista de solo lectura del catálogo para la tienda: búsquedas, fases y compra. */
-import { dropPhase, isPurchasable, isVisible, type Artwork, type Drop, type DropPhase, type Product, type Support, type Variant } from './domain';
+import { dropPhase, isPurchasable, isVisible, type Artwork, type Drop, type DropPhase, type Product, type ProductImage, type Support, type Variant } from './domain';
 
 export type CatalogVariant = Variant & { available: number };
 export type CatalogData = {
@@ -58,6 +58,7 @@ export class CatalogView {
   productsOfDrop(dropId: string): Product[] { return this.products().filter((p) => p.dropId === dropId); }
   productsOfArtwork(artworkId: string): Product[] { return this.products().filter((p) => p.artworkId === artworkId); }
 
+  imagesOf(product: Product): ProductImage[] { return [...(product.images ?? [])].sort((a, b) => a.position - b.position); }
   variantsOf(productId: string): CatalogVariant[] { return this.data.variants.filter((v) => v.productId === productId); }
   variant(id: string): CatalogVariant | null { return this.data.variants.find((v) => v.id === id) ?? null; }
   available(product: Product): number { return this.variantsOf(product.id).reduce((s, v) => s + v.available, 0); }

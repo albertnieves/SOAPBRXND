@@ -21,7 +21,7 @@ export function PatternDef({ id, spec }: { id: string; spec: PatternSpec }) {
       case 'weave':
         return <><rect width={s * 2} height={s * 2} fill={a} /><rect width={s * 2} height={s / 3} y={s / 3} fill={b} /><rect width={s / 3} height={s * 2} x={s * 1.3} fill={b} opacity={0.7} /></>;
       case 'bubbles':
-        return <><rect width={s * 2} height={s * 2} fill={a} /><circle cx={s * 0.6} cy={s * 0.6} r={s * 0.4} fill="none" stroke={b} strokeWidth={s / 10} /><circle cx={s * 1.5} cy={s * 1.2} r={s * 0.28} fill="none" stroke={c} strokeWidth={s / 10} /><circle cx={s * 0.9} cy={s * 1.65} r={s * 0.18} fill="none" stroke={d} strokeWidth={s / 12} /></>;
+        return <><rect width={s * 2} height={s * 2} fill={a} /><circle cx={s * 0.6} cy={s * 0.6} r={s * 0.4} fill="none" stroke={b} strokeWidth={s / 6} /><circle cx={s * 1.5} cy={s * 1.2} r={s * 0.28} fill="none" stroke={c} strokeWidth={s / 6} /><circle cx={s * 0.9} cy={s * 1.65} r={s * 0.18} fill="none" stroke={d} strokeWidth={s / 7} /></>;
     }
   })();
   return (
@@ -33,7 +33,7 @@ export function PatternDef({ id, spec }: { id: string; spec: PatternSpec }) {
 
 export function ArtSwatch({ id, spec, label }: { id: string; spec: PatternSpec; label?: string }) {
   return (
-    <svg className="swatch" viewBox="0 0 120 120" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} shapeRendering="crispEdges">
+    <svg className="tk-swatch" viewBox="0 0 120 120" preserveAspectRatio="xMidYMid slice" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true} shapeRendering="crispEdges">
       <defs><PatternDef id={id} spec={spec} /></defs>
       <rect width="120" height="120" fill={`url(#${id})`} />
     </svg>

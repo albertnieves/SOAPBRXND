@@ -12,18 +12,18 @@ export const metadata = { title: 'Finalizar compra', robots: { index: false } };
 export default async function Checkout() {
   const bag = bagView(await readCart(), await getCatalog());
   const enabled = paymentsEnabled();
-  if (!bag.lines.length) return (<><h1>Finalizar compra</h1><p>Tu bolsa está vacía. <Link href="/drops">Ver los drops</Link></p></>);
+  if (!bag.lines.length) return (<><h1>Finalizar compra</h1><p className="tk-lede">Tu bolsa está vacía.</p><p><Link className="tk-btn" href="/drops">Ver los drops</Link></p></>);
   return (
     <>
       <h1>Finalizar compra</h1>
-      {!enabled && <p className="alert">El pago no está activo: esta tienda está en modo demo.</p>}
-      <div className="hero-art">
-        <CheckoutForm requestId={randomUUID()} enabled={enabled} />
-        <div>
-          <h2 style={{ marginTop: 0 }}>Tu pedido</h2>
-          {bag.lines.map((l) => <p key={l.variantId}>{l.quantity} × {l.product.name} · {l.label} — {formatEuros(l.lineCents)}</p>)}
-          <div className="total"><span>Subtotal</span><span>{formatEuros(bag.itemsCents)}</span></div>
-          <p className="note">El envío y el total final se calculan con tu código postal antes de pagar.</p>
+      {!enabled && <p className="tk-alert">El pago no está activo: esta tienda está en modo demo.</p>}
+      <div className="tk-checkout">
+        <div className="tk-sheet"><CheckoutForm requestId={randomUUID()} enabled={enabled} /></div>
+        <div className="tk-ticket">
+          <p className="tk-ticket-head"><span>Tu pedido</span><small>{bag.lines.length} líneas</small></p>
+          {bag.lines.map((l) => <div key={l.variantId} className="tk-sum"><span>{l.quantity} × {l.product.name}, {l.label}</span><span>{formatEuros(l.lineCents)}</span></div>)}
+          <div className="tk-sum is-total"><span>Subtotal</span><span>{formatEuros(bag.itemsCents)}</span></div>
+          <p>El envío se suma con tu código postal y lo ves antes de pagar.</p>
         </div>
       </div>
     </>

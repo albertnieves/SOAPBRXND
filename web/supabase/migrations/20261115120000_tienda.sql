@@ -73,6 +73,16 @@ create table public.variants (
 );
 create index variants_product_idx on public.variants (product_id);
 
+-- Fotos reales de cada producto (Supabase Storage, bucket público «productos»).
+create table public.product_images (
+  id uuid primary key default gen_random_uuid(),
+  product_id uuid not null references public.products (id) on delete cascade,
+  url text not null check (url ~ '^https://'),
+  alt text not null default '',
+  position integer not null default 0
+);
+create index product_images_product_idx on public.product_images (product_id, position);
+
 -- -----------------------------------------------------------------------------
 -- Pedidos, reservas y pagos
 -- -----------------------------------------------------------------------------
@@ -521,6 +531,7 @@ alter table public.artworks enable row level security;
 alter table public.supports enable row level security;
 alter table public.products enable row level security;
 alter table public.variants enable row level security;
+alter table public.product_images enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_lines enable row level security;
 alter table public.holds enable row level security;
@@ -539,9 +550,12 @@ create policy products_public_read on public.products for select to anon, authen
 create policy variants_public_read on public.variants for select to anon, authenticated
   using (active and exists (select 1 from public.products p where p.id = variants.product_id));
 
+create policy product_images_public_read on public.product_images for select to anon, authenticated
+  using (exists (select 1 from public.products p where p.id = product_images.product_id));
+
 revoke all on all tables in schema public from anon, authenticated;
 grant select on public.drops, public.artworks, public.supports, public.products, public.variants,
-  public.catalog_variants to anon, authenticated;
+  public.product_images, public.catalog_variants to anon, authenticated;
 grant usage on schema private to anon, authenticated;
 grant execute on function private.drop_visible(public.drops) to anon, authenticated;
 

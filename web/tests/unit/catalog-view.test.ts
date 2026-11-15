@@ -42,6 +42,17 @@ describe('CatalogView', () => {
   });
 });
 
+describe('fotos', () => {
+  it('las fotos de un producto salen en orden; sin fotos, lista vacía', () => {
+    const data = seedData();
+    const p = data.products[0]!;
+    p.images = [{ url: 'https://x/b.jpg', alt: 'b', position: 2 }, { url: 'https://x/a.jpg', alt: 'a', position: 1 }];
+    const v = new CatalogView(data, NOW);
+    expect(v.imagesOf(v.productBySlug(p.slug)!).map((i) => i.alt)).toEqual(['a', 'b']);
+    expect(v.imagesOf(v.productBySlug('tee-pompa-repeat')!)).toEqual([]);
+  });
+});
+
 describe('catálogo incompleto', () => {
   it('un producto sin variantes no se enseña', () => {
     const data = seedData();
