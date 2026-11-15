@@ -1,0 +1,49 @@
+name: web
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: ['web/**', '.github/workflows/web.yml']
+  push:
+    branches: [dev, main]
+    paths: ['web/**', '.github/workflows/web.yml']
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: web
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Unitarias y base de datos (PGlite)
+        run: pnpm test
+      - name: Build (modo demo)
+        run: pnpm build
+      - name: Tipos (tras el build, que genera next-env.d.ts)
+        run: pnpm typecheck
+      - name: Navegador para e2e
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Extremo a extremo (escritorio y móvil)
+        run: pnpm e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/playwright-report
+          retention-days: 7

@@ -212,6 +212,9 @@ IMPORTANTE CHAVALES NO ME LA LIEIS!!!!!!!!!!!!!
 
 ## Reparto sugerido
 
+> Fases siguientes, áreas, convenciones y primera semana de alguien nuevo: [`docs/EQUIPO.md`](docs/EQUIPO.md).
+
+
 | Área | Responsable |
 |---|---|
 | Diseño, identidad visual y contenido | — |
