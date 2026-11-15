@@ -48,6 +48,8 @@ Universo creativo y tienda de **Dani R.** — drops, identidad visual y lanzamie
 
 Se mueve tocando el suelo (caminos con obstáculos), los muebles se usan tocándolos, la sala se arrastra en móvil y la cámara sigue a Pompa. Todas las acciones están también en los botones (PRODUCTOS · SHOP · BOLSA, laterales), así que se puede comprar sin «jugar». La bolsa, el look y el nombre se guardan en el navegador.
 
+**Plan para llegar a tienda real:** [`docs/PLAN_ECOMMERCE.md`](docs/PLAN_ECOMMERCE.md).
+
 **Todo es de ejemplo:** productos, precios, stock, llaves y textos de envíos/devoluciones/contacto son placeholders hasta conectar Supabase (Fase 2) y Stripe (Fase 3). Todo el arte está dibujado por código (sin imágenes externas), así que cambiar colores o muebles es tocar el JS.
 
 **Limitaciones conocidas:** todo hardcodeado, sin componentes reutilizables, sin tipado, sin tests, sin CMS, sin carrito, sin pagos, sin usuarios.

@@ -1031,7 +1031,7 @@ function danielReply(q) {
 function talkDaniel() {
   daniel.wave = performance.now() + 1400;
   say(daniel, ['¡Buenas! ¿Te ayudo con tallas, drops o envíos?', 'Unidades limitadas. Agotado es agotado.', 'La lavadora 01 está girando. Echa un ojo a la ropa.'][Math.floor(Math.random() * 3)]);
-  setTimeout(() => $('#chatIn').focus({ preventScroll: true }), 50);
+  if (matchMedia('(pointer: fine)').matches) setTimeout(() => $('#chatIn').focus({ preventScroll: true }), 50);
 }
 $('#chat').addEventListener('submit', e => {
   e.preventDefault();
@@ -1066,9 +1066,13 @@ function cardHTML(p) {
     <div class="meta"><strong>${esc(p.name)}</strong>${euro(p.price)}</div></button>`;
 }
 function openCatalog() {
-  openPanel('PRODUCTOS', `<div class="eyebrow">LAVADORA 01 · FIRST SIGNAL</div>
-    <div class="grid">${PRODUCTS.map(cardHTML).join('')}</div>${NOTE_DATA}`);
+  const groups = DROPS.filter(d => d.status === 'available').map(d => {
+    const items = PRODUCTS.filter(p => p.drop === d.id);
+    return items.length ? `<div class="eyebrow" style="margin-top:6px">LAVADORA ${d.n} · ${esc(d.name)}</div><div class="grid" style="margin-bottom:14px">${items.map(cardHTML).join('')}</div>` : '';
+  }).join('');
+  openPanel('PRODUCTOS', groups + NOTE_DATA);
 }
+const dropOf = p => DROPS.find(d => d.id === p.drop) || { n: '--', name: '' };
 function openProduct(id, size) {
   const p = PRODUCTS.find(x => x.id === id);
   const sizes = Object.entries(p.sizes);
@@ -1079,7 +1083,7 @@ function openProduct(id, size) {
   openPanel(p.name.toUpperCase(), `<div class="prod">
       <div class="hang"><img src="${artURL[p.id]}" alt="${esc(p.name)}"></div>
       <div>
-        <div class="eyebrow">${BRAND} — 01 · FIRST SIGNAL</div>
+        <div class="eyebrow">${BRAND} — ${dropOf(p).n} · ${esc(dropOf(p).name)}</div>
         <div class="price">${euro(p.price)}</div>
         <p>${esc(p.desc)}</p>
         <div class="eyebrow">TALLA</div>
@@ -1093,7 +1097,12 @@ function openProduct(id, size) {
       </div></div>${NOTE_DATA}`);
 }
 
-let bag = store.get('bag', []);
+let bag = store.get('bag', []).filter(b => {
+  const p = PRODUCTS.find(x => x.id === b.id);
+  if (!p || !(b.size in p.sizes) || p.sizes[b.size] <= 0) return false;
+  b.q = Math.max(1, Math.min(b.q | 0, p.sizes[b.size]));
+  return true;
+});
 function saveBag() { store.set('bag', bag); const n = bag.reduce((a, b) => a + b.q, 0); $('#bagN').textContent = n ? n : ''; }
 function addToBag(id, size) {
   const p = PRODUCTS.find(x => x.id === id);
