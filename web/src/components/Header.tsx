@@ -5,7 +5,8 @@ export async function Header() {
   const n = await readCartCount();
   return (
     <header className="top">
-      <Link href="/" className="logo">SOAPBRXND</Link>
+      {/* Enlace normal: la lavandería necesita una carga completa para arrancar su script. */}
+      <a href="/" className="logo">SOAPBRXND</a>
       <nav aria-label="Tienda">
         <Link href="/drops">Drops</Link>
         <Link href="/artes">Artes</Link>

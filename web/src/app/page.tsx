@@ -1,20 +1,23 @@
 import Link from 'next/link';
+import Script from 'next/script';
 import { getCatalog } from '@/modules/catalog/source';
 
 export const dynamic = 'force-dynamic';
 
+/* La portada es la lavandería pixel (public/room). Debajo, los mismos enlaces en HTML normal. */
 export default async function Home() {
   const view = await getCatalog();
   return (
     <>
-      <p className="eyebrow">Lavandería de drops · abierta 24h</p>
-      <h1>SOAPBRXND</h1>
-      <div className="grid">
-        {view.visibleDrops().map((d) => (
-          <Link key={d.id} href={`/drops/${d.slug}`} className="card"><div className="card-meta"><span className={`phase ${view.phaseOf(d)}`}>{view.phaseOf(d).toUpperCase()}</span><strong>{d.number} · {d.name}</strong></div></Link>
-        ))}
-      </div>
-      <p style={{ marginTop: 20 }}><Link className="btn ghost" href="/artes">Ver las artes</Link></p>
+      <link rel="stylesheet" href="/room/room.css" precedence="default" />
+      <div id="lavanderia" aria-label="Lavandería SOAPBRXND" />
+      <Script src="/room/room.js" strategy="afterInteractive" />
+      <h1>SOAPBRXND · Lavandería de drops</h1>
+      <p>Patrones de estampado, texturas y textiles convertidos en prendas, láminas y tela por metro.</p>
+      <h2>Drops</h2>
+      <ul>{view.visibleDrops().map((d) => <li key={d.id}><Link href={`/drops/${d.slug}`}>{d.number} · {d.name}</Link></li>)}</ul>
+      <h2>Artes</h2>
+      <ul>{view.artworks().map((a) => <li key={a.id}><Link href={`/artes/${a.slug}`}>{a.name}</Link></li>)}</ul>
     </>
   );
 }
