@@ -29,6 +29,10 @@ Universo creativo y tienda de **Dani R.** — drops, identidad visual y lanzamie
 | Footer con redes | ✅ links vacíos |
 | Responsive móvil / tablet / desktop | ✅ |
 
+## Tienda real (`web/`) — fases A y B
+
+App Next.js con catálogo en Supabase, bolsa, checkout con **Stripe** y la lavandería pixel como portada. Sin claves arranca en modo demo. Cómo arrancarla y ponerla en producción: [`web/README.md`](web/README.md). Plan ejecutado: [`docs/plans/2026-11-15-tienda-real-fase-a-b.md`](docs/plans/2026-11-15-tienda-real-fase-a-b.md).
+
 ## Miniverso pixel — la lavandería (v1)
 
 `miniverso/index.html` — la tienda como una habitación isométrica en pixel art (estilo juego de habitaciones de los 2000), sin frameworks y en un solo archivo, igual que la maqueta.

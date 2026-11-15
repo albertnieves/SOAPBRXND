@@ -4,6 +4,8 @@ Revisión del miniverso pixel (`miniverso/index.html`) y propuesta para converti
 
 ---
 
+> **Decisiones tomadas (15/11/2026):** pagos con **Stripe**; se reutiliza lo que funciona de L'Atelier con otro enfoque de datos (catálogo centrado en el arte); los «cuadros» son **artes**: patrones de estampado, texturas y textiles. Fases A y B hechas en `web/` (ver `web/README.md`).
+
 ## 0. En cinco líneas
 
 1. **La sala pixel es la portada y la experiencia, no la tienda entera.** Cada producto necesita además su página HTML normal (`/p/hoodie-first-signal`) con fotos reales, para Google, para compartir en TikTok/Instagram y para quien quiera comprar rápido.
