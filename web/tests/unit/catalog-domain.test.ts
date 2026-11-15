@@ -51,3 +51,12 @@ describe('stock', () => {
     expect(isPurchasable('agotado')).toBe(false);
   });
 });
+
+describe('piezas', () => {
+  it('singular y plural', async () => {
+    const { piezas } = await import('@/modules/catalog/domain');
+    expect(piezas(1)).toBe('1 pieza');
+    expect(piezas(2)).toBe('2 piezas');
+    expect(piezas(0)).toBe('0 piezas');
+  });
+});

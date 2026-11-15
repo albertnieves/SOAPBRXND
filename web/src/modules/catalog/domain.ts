@@ -106,3 +106,5 @@ export function stockLabel(n: number): string {
 export function variantLabel(v: Pick<Variant, 'options'>, support: Pick<Support, 'options'>): string {
   return support.options.map((k) => v.options[k]).filter(Boolean).join(' · ');
 }
+
+export const piezas = (n: number) => `${n} ${n === 1 ? 'pieza' : 'piezas'}`;

@@ -4,6 +4,7 @@ import type { CatalogView } from './view';
 
 export type RoomSprite = 'hoodie' | 'tee' | 'beanie' | 'print' | 'fabric' | 'scarf';
 const SPRITES: Record<string, RoomSprite> = { hoodie: 'hoodie', tee: 'tee', gorro: 'beanie', lamina: 'print', 'tela-metro': 'fabric', panuelo: 'scarf' };
+export const roomSprite = (supportSlug: string): RoomSprite => SPRITES[supportSlug] ?? 'tee';
 
 export type RoomData = {
   washers: { number: string; name: string; slug: string; phase: DropPhase; href: string; opensAt: string | null }[];
@@ -23,7 +24,7 @@ export function roomData(view: CatalogView): RoomData {
     const s = view.support(p.supportId);
     return {
       slug: p.slug, name: p.name, href: `/p/${p.slug}`, dropNumber: view.drop(p.dropId).number,
-      priceCents: view.fromPriceCents(p), color: p.color, sprite: SPRITES[s.slug] ?? 'tee', wear: s.wear,
+      priceCents: view.fromPriceCents(p), color: p.color, sprite: roomSprite(s.slug), wear: s.wear,
       purchasable: view.purchasable(p), stockLabel: stockLabel(view.available(p)), pattern: view.artwork(p.artworkId).pattern,
     };
   });
