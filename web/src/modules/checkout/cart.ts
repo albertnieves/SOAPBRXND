@@ -10,7 +10,7 @@ export const CART_EVENT = 'sbx:bolsa';
 /** 30 días: la cesta sigue ahí si vuelves otro día. */
 export const CART_MAX_AGE = 60 * 60 * 24 * 30;
 export const MAX_CART_LINES = 20;
-/** Unidades de un mismo variante por pedido web. */
+/** Unidades de una misma variante por pedido web. */
 export const MAX_LINE_QUANTITY = 10;
 
 export type CartLine = { variantId: string; quantity: number };
@@ -93,7 +93,7 @@ export function addToCart(
   };
 }
 
-/** Cambia la cantidad; 0 quita el variante de la cesta. */
+/** Cambia la cantidad; 0 quita la variante de la bolsa. */
 export function setLineQuantity(
   lines: readonly CartLine[],
   variantId: string,
