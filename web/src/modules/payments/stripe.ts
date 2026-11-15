@@ -17,8 +17,12 @@ export type OrderSummary = {
   lines: { variant_id: string; sku: string; product_name: string; variant_label: string; quantity: number; unit_cents: number }[];
 };
 
-/** Stripe exige que una sesión dure al menos 30 minutos. */
-const MIN_SESSION_SECONDS = 30 * 60 + 60;
+/** Stripe exige que una sesión dure al menos 30 minutos (más un margen de red). */
+const MIN_SESSION_SECONDS = 31 * 60;
+/** La sesión caduca antes que la reserva: un pago hecho a tiempo siempre encuentra su pieza. */
+export const SESSION_BEFORE_HOLD_SECONDS = 10 * 60;
+/** Minutos de reserva al crear el pedido (35 de sesión + 10 de margen). */
+export const HOLD_MINUTES = 45;
 
 export function checkoutSessionParams(order: OrderSummary, baseUrl: string, now: Date = new Date()): Stripe.Checkout.SessionCreateParams {
   const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = order.lines.map((l) => ({
@@ -32,11 +36,14 @@ export function checkoutSessionParams(order: OrderSummary, baseUrl: string, now:
   if (order.shipping_cents > 0) {
     line_items.push({ quantity: 1, price_data: { currency: 'eur', unit_amount: order.shipping_cents, product_data: { name: 'Envío' } } });
   }
-  const nowS = Math.floor(now.getTime() / 1000);
-  const expires_at = Math.max(Math.floor(Date.parse(order.reserved_until) / 1000), nowS + MIN_SESSION_SECONDS);
+  // Solo depende del pedido: un reintento con la misma clave de idempotencia manda lo mismo.
+  const expires_at = Math.floor(Date.parse(order.reserved_until) / 1000) - SESSION_BEFORE_HOLD_SECONDS;
+  if (expires_at < Math.floor(now.getTime() / 1000) + MIN_SESSION_SECONDS) throw new Error('hold_too_short');
   return {
     mode: 'payment',
     locale: 'es',
+    // Sin pagos diferidos (SEPA…): llegarían cuando la reserva ya ha caducado.
+    allowed_payment_method_types: ['card', 'link'],
     line_items,
     customer_email: order.email,
     client_reference_id: order.order_id,

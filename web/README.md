@@ -26,7 +26,9 @@ pnpm build && pnpm e2e   # extremo a extremo, escritorio y móvil
 **Reglas que no se rompen**
 
 - Precio, stock y total los calcula **la base** (`checkout_create`); el navegador solo manda ids y cantidades.
-- Al empezar el pago se **reservan** las unidades (35 min). Disponible = stock − reservas vivas. Dos compras de la última unidad se ponen en fila (`for update`).
+- Al empezar el pago se **reservan** las unidades 45 min; la sesión de Stripe caduca 10 min antes, así que quien paga a tiempo siempre tiene su pieza. Disponible = stock − reservas vivas. Dos compras de la última unidad se ponen en fila (`for update`).
+- Si el cliente vuelve de Stripe sin pagar y empieza otro pago, su pedido anterior se libera (cookie `sbx_pedido`) para que su propia reserva no le diga «agotado».
+- Solo tarjeta y Link (Apple Pay y Google Pay entran como tarjeta): nada de pagos diferidos como SEPA.
 - El pedido solo pasa a pagado con el **webhook firmado** de Stripe. Cada evento se procesa una vez (`stripe_events`).
 - Si el importe no cuadra, o el pago llega cuando ya no hay stock, el pedido queda en `needs_attention` para revisarlo y reembolsar.
 - `anon` solo lee el catálogo publicado; pedidos, reservas y funciones de pago son solo de `service_role`.
@@ -40,6 +42,11 @@ Reutilizado de L'Atelier (`adhara-web`): dinero en céntimos, bolsa en cookie, z
    En local: `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 3. **Vercel:** proyecto con *Root Directory* = `web`, variables de `.env.example` y `CRON_SECRET`. El cron diario (`vercel.json`) marca como caducados los pedidos sin pagar; las reservas ya dejan de contar solas al vencer, y Stripe avisa de cada sesión caducada.
 4. **Prueba completa en modo test:** compra con la tarjeta `4242 4242 4242 4242`, comprueba que el pedido pasa a `paid` y que baja el stock.
+
+## Riesgos conocidos
+
+- **Acaparar stock sin pagar:** cualquiera puede reservar piezas 45 min empezando pagos sin terminarlos. Antes del primer drop con mucha demanda: captcha en el checkout y límite de pedidos pendientes por cliente (fase D).
+- **Sin emails ni panel todavía:** los pedidos que necesitan revisión (`needs_attention`) solo quedan en los logs de Vercel («stripe: pedido a revisar»). Activa los recibos de Stripe (*Settings → Customer emails*) mientras tanto.
 
 ## Pendiente (siguientes fases)
 

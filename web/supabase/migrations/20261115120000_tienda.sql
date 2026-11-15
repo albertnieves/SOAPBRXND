@@ -398,7 +398,9 @@ begin
     return jsonb_build_object('status', 'unknown_session');
   end if;
   update public.stripe_events set order_id = v_order.id where id = p_event_id;
-  if v_order.status not in ('pending', 'expired') then
+  -- 'cancelled': el cliente abandonó el pago y volvió a la bolsa, pero la sesión
+  -- vieja se pagó igualmente. Se cobra si queda stock; si no, a revisar.
+  if v_order.status not in ('pending', 'expired', 'cancelled') then
     return jsonb_build_object('status', v_order.status, 'order_id', v_order.id);
   end if;
 
@@ -457,6 +459,26 @@ begin
 end;
 $$;
 
+-- El cliente vuelve de Stripe sin pagar y empieza otro pago: se libera el
+-- pedido anterior (el servidor caduca antes su sesión de Stripe).
+create or replace function public.checkout_release(p_order uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  v_order public.orders;
+begin
+  select * into v_order from public.orders o where o.id = p_order for update;
+  if not found then
+    return jsonb_build_object('status', 'unknown_order');
+  end if;
+  if v_order.status = 'pending' then
+    delete from public.holds where order_id = v_order.id;
+    update public.orders set status = 'cancelled', updated_at = now() where id = v_order.id
+    returning * into v_order;
+  end if;
+  return jsonb_build_object('status', v_order.status, 'order_id', v_order.id, 'stripe_session_id', v_order.stripe_session_id);
+end;
+$$;
+
 -- Cron: caduca pedidos pendientes cuya reserva venció. Devuelve cuántos.
 create or replace function public.holds_release_expired()
 returns integer language plpgsql security definer set search_path = '' as $$
@@ -512,7 +534,9 @@ revoke all on function public.checkout_confirm_paid(text, text, integer, text) f
 revoke all on function public.checkout_expire(text, text) from public, anon, authenticated;
 revoke all on function public.holds_release_expired() from public, anon, authenticated;
 revoke all on function public.order_status(uuid) from public, anon, authenticated;
+revoke all on function public.checkout_release(uuid) from public, anon, authenticated;
 grant execute on function public.checkout_create(uuid, jsonb, jsonb, integer),
   public.checkout_attach_session(uuid, text), public.checkout_confirm_paid(text, text, integer, text),
-  public.checkout_expire(text, text), public.holds_release_expired(), public.order_status(uuid)
+  public.checkout_expire(text, text), public.holds_release_expired(), public.order_status(uuid),
+  public.checkout_release(uuid)
   to service_role;

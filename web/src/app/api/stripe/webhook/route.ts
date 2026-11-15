@@ -16,5 +16,10 @@ export async function POST(req: Request) {
   }
   // Si la base falla, devolvemos 500 y Stripe reintenta; las funciones son idempotentes.
   const r = await handleEvent(event, (fn, args) => serviceRpc(fn, args));
+  const status = (r.result as { status?: string; order_id?: string } | undefined)?.status;
+  if (status === 'needs_attention' || status === 'unknown_session') {
+    // Hasta que haya panel y emails: que al menos quede en los logs de Vercel.
+    console.error('stripe: pedido a revisar', event.id, JSON.stringify(r.result));
+  }
   return Response.json({ received: true, handled: r.handled });
 }

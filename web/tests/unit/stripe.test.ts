@@ -7,7 +7,7 @@ const NOW = new Date('2026-11-15T12:00:00Z');
 const order = {
   order_id: '9b2f4c1e-0000-4000-8000-000000000001', number: 42, status: 'pending',
   items_cents: 7000, shipping_cents: 490, total_cents: 7490, email: 'ana@example.com',
-  reserved_until: '2026-11-15T12:40:00Z',
+  reserved_until: '2026-11-15T12:45:00Z',
   lines: [{ variant_id: 'v', sku: 'SBX-TEE-M', product_name: 'Tee Pompa Repeat', variant_label: 'M', quantity: 2, unit_cents: 3500 }],
 };
 
@@ -36,10 +36,18 @@ describe('checkoutSessionParams', () => {
       cancel_url: 'https://soapbrxnd.test/bolsa?cancelado=1',
     });
   });
-  it('caduca con la reserva, pero nunca antes de los 30 min que exige Stripe', () => {
-    expect(p.expires_at).toBe(Date.parse('2026-11-15T12:40:00Z') / 1000);
-    const short = checkoutSessionParams({ ...order, reserved_until: '2026-11-15T12:10:00Z' }, 'https://x.test', NOW);
-    expect(short.expires_at).toBe(NOW.getTime() / 1000 + 30 * 60 + 60);
+  it('la sesión caduca 10 min antes que la reserva: quien paga a tiempo siempre tiene su pieza', () => {
+    expect(p.expires_at).toBe(Date.parse('2026-11-15T12:35:00Z') / 1000);
+  });
+  it('la fecha de caducidad no depende del reloj (misma clave de idempotencia, mismos parámetros)', () => {
+    const later = checkoutSessionParams(order, 'https://soapbrxnd.test', new Date('2026-11-15T12:03:00Z'));
+    expect(later.expires_at).toBe(p.expires_at);
+  });
+  it('si a la reserva no le quedan los 30 min que exige Stripe, no se crea la sesión', () => {
+    expect(() => checkoutSessionParams({ ...order, reserved_until: '2026-11-15T12:40:00Z' }, 'https://x.test', NOW)).toThrow('hold_too_short');
+  });
+  it('solo tarjeta (y carteras de tarjeta): nada de pagos diferidos', () => {
+    expect(p.allowed_payment_method_types).toEqual(['card', 'link']);
   });
 });
 

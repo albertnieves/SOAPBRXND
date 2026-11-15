@@ -117,6 +117,23 @@ describe('pago con Stripe', () => {
     expect(await stockOf(db, HOODIE_L)).toBe(0);
   });
 
+  it('checkout_release libera la reserva de un pedido abandonado y devuelve su sesión', async () => {
+    const s = await createOrder(db, [{ variant_id: HOODIE_L, quantity: 2 }]);
+    await attach(s.order_id, 'cs_test_r');
+    const r = await as<{ r: { status: string; stripe_session_id: string } }>(db, 'service_role', 'select public.checkout_release($1::uuid) as r', [s.order_id]);
+    expect(r[0]!.r).toMatchObject({ status: 'cancelled', stripe_session_id: 'cs_test_r' });
+    expect(await availableOf(db, HOODIE_L)).toBe(2);
+    await expect(createOrder(db, [{ variant_id: HOODIE_L, quantity: 2 }])).resolves.toMatchObject({ status: 'pending' });
+  });
+
+  it('un pago que llega sobre un pedido cancelado se cobra si queda stock', async () => {
+    const s = await createOrder(db, [{ variant_id: TEE_M, quantity: 1 }]);
+    await attach(s.order_id, 'cs_test_c');
+    await as(db, 'service_role', 'select public.checkout_release($1::uuid)', [s.order_id]);
+    expect((await pay('evt_c', 'cs_test_c', s.total_cents)).status).toBe('paid');
+    expect(await stockOf(db, TEE_M)).toBe(5);
+  });
+
   it('holds_release_expired libera reservas vencidas', async () => {
     const s = await createOrder(db, [{ variant_id: HOODIE_L, quantity: 1 }], { hold: 5 });
     await db.exec(`update public.holds set expires_at = now() - interval '1 minute'; update public.orders set reserved_until = now() - interval '1 minute'`);
