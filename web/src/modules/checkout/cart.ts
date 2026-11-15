@@ -5,6 +5,8 @@
  */
 
 export const CART_COOKIE = 'sbx_bolsa';
+/** Pedido en curso en este navegador: «orderId:requestId» (httpOnly). */
+export const PENDING_COOKIE = 'sbx_pedido';
 /** Evento del navegador tras cambiar la cesta (la cabecera vuelve a contar). */
 export const CART_EVENT = 'sbx:bolsa';
 /** 30 días: la cesta sigue ahí si vuelves otro día. */
@@ -108,4 +110,9 @@ export function setLineQuantity(
     : lines.map((line) =>
         line.variantId === variantId ? { ...line, quantity: clamped } : line,
       );
+}
+
+/** Adónde volver tras un error al añadir: solo a una ficha de la tienda. */
+export function safeBack(path: unknown): string {
+  return typeof path === 'string' && /^\/p\/[a-z0-9-]+$/.test(path) ? path : '/';
 }

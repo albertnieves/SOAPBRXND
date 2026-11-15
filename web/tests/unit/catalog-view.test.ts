@@ -42,6 +42,22 @@ describe('CatalogView', () => {
   });
 });
 
+describe('catálogo incompleto', () => {
+  it('un producto sin variantes no se enseña', () => {
+    const data = seedData();
+    data.variants = data.variants.filter((v) => v.productId !== data.products[0]!.id);
+    const v = new CatalogView(data, NOW);
+    expect(v.productBySlug(data.products[0]!.slug)).toBeNull();
+  });
+  it('un arte sin productos visibles no se enseña', () => {
+    const data = seedData();
+    data.products = data.products.filter((p) => p.slug !== 'gorro-espuma');
+    const v = new CatalogView(data, NOW);
+    expect(v.artworkBySlug('espuma')).toBeNull();
+    expect(v.artworks().map((a) => a.slug)).not.toContain('espuma');
+  });
+});
+
 describe('roomData', () => {
   it('como mucho tres lavadoras, por número y sin borradores', () => {
     const r = roomData(view());

@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { formatEuros } from '@/lib/money';
 import { paymentsEnabled } from '@/lib/env';
-import { isVariantId } from '@/modules/checkout/cart';
+import { cookies } from 'next/headers';
+import { isVariantId, PENDING_COOKIE } from '@/modules/checkout/cart';
 import { serviceRpc } from '@/lib/supabase-service';
 import type { OrderSummary } from '@/modules/payments/stripe';
 import { orderMessage } from '@/modules/checkout/order-copy';
@@ -19,9 +20,11 @@ export default async function Pedido({ searchParams }: { searchParams: Promise<{
   }
   if (!order) return (<><h1>Tu pedido</h1><p>No encontramos ese pedido. <Link href="/">Volver a la lavandería</Link></p></>);
   const paid = ['paid', 'needs_attention', 'shipped', 'delivered'].includes(order.status);
+  // Solo se vacía la bolsa si este pedido se hizo en este navegador.
+  const mine = (await cookies()).get(PENDING_COOKIE)?.value.split(':')[0] === order.order_id;
   return (
     <>
-      {paid && <ClearBag />}
+      {paid && mine && <ClearBag />}
       <p className="eyebrow">Pedido nº {order.number}</p>
       <h1>{paid ? 'Gracias' : 'Tu pedido'}</h1>
       <p>{orderMessage(order.status)}</p>

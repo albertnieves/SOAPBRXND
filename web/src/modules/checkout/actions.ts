@@ -7,13 +7,13 @@ import { getCatalog } from '@/modules/catalog/source';
 import { paymentsEnabled, siteUrl } from '@/lib/env';
 import { serviceRpc } from '@/lib/supabase-service';
 import { checkoutSessionParams } from '@/modules/payments/stripe';
-import { addToCart, isVariantId, setLineQuantity } from './cart';
+import { addToCart, isVariantId, PENDING_COOKIE, safeBack, setLineQuantity } from './cart';
 import { prepareOrder } from './flow';
 import { readCart, writeCart } from './server';
 
 export async function addToBag(formData: FormData): Promise<void> {
   const variantId = String(formData.get('variantId') ?? '');
-  const back = String(formData.get('back') ?? '/');
+  const back = safeBack(formData.get('back'));
   if (!isVariantId(variantId)) redirect(`${back}?error=talla`);
   const view = await getCatalog();
   const v = view.variant(variantId);
@@ -43,10 +43,8 @@ const MESSAGES: Record<string, string> = {
   invalid_address: 'Revisa la dirección y el código postal.',
   shipping_zone_unavailable: 'De momento solo enviamos a la península y a Baleares.',
   invalid_items: 'Tu bolsa está vacía.',
+  too_many_pending: 'Tienes varios pagos a medias con este email. Termina uno o espera unos minutos.',
 };
-
-/** Pedido en curso en este navegador: «orderId:requestId». */
-const PENDING_COOKIE = 'sbx_pedido';
 
 export async function startCheckout(_prev: CheckoutState, formData: FormData): Promise<CheckoutState> {
   if (!paymentsEnabled()) return { error: 'El pago no está activo todavía.' };

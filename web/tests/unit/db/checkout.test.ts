@@ -78,6 +78,14 @@ describe('checkout_create', () => {
   });
 });
 
+describe('límites', () => {
+  it('como mucho 3 pedidos pendientes vivos por email: el cuarto se rechaza', async () => {
+    for (let i = 0; i < 3; i++) await createOrder(db, [{ variant_id: TEE_M, quantity: 1 }]);
+    await expect(createOrder(db, [{ variant_id: TEE_M, quantity: 1 }])).rejects.toThrow('too_many_pending');
+    await expect(createOrder(db, [{ variant_id: TEE_M, quantity: 1 }], { contact: { ...CONTACT, email: 'otra@example.com' } })).resolves.toMatchObject({ status: 'pending' });
+  });
+});
+
 describe('pago con Stripe', () => {
   it('confirmar descuenta stock, borra reservas y es idempotente', async () => {
     const s = await createOrder(db, [{ variant_id: TEE_M, quantity: 2 }]);
@@ -150,6 +158,13 @@ describe('permisos', () => {
     expect(rows.map((r) => r.drop_slug).sort()).toEqual(['first-signal', 'locked-drop', 'visual-pack-001']);
     const drops = await as<{ slug: string }>(db, 'anon', 'select slug from public.drops');
     expect(drops.map((d) => d.slug)).not.toContain('next-chapter');
+  });
+  it('un arte que solo está en un drop en borrador no es público', async () => {
+    await db.exec(`insert into public.artworks (id, slug, name, kind) values ('20000000-0000-4000-8000-000000000099', 'secreto', 'Secreto', 'patron');
+      insert into public.products (slug, drop_id, artwork_id, support_id, name) select 'tee-secreto', d.id, '20000000-0000-4000-8000-000000000099', s.id, 'Tee Secreto' from public.drops d, public.supports s where d.slug = 'next-chapter' and s.slug = 'tee'`);
+    const arts = await as<{ slug: string }>(db, 'anon', 'select slug from public.artworks');
+    expect(arts.map((a) => a.slug)).not.toContain('secreto');
+    expect(arts.length).toBe(6);
   });
   it('anon no ve pedidos ni reservas ni puede crear pedidos', async () => {
     await expect(as(db, 'anon', 'select * from public.orders')).rejects.toThrow(/permission denied/);

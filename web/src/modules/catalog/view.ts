@@ -37,15 +37,22 @@ export class CatalogView {
     return d && this.visible(d) ? d : null;
   }
 
-  artworks(): Artwork[] { return this.data.artworks; }
+  /** Artes que están en alguna pieza visible. */
+  artworks(): Artwork[] {
+    const used = new Set(this.products().map((p) => p.artworkId));
+    return this.data.artworks.filter((a) => used.has(a.id));
+  }
   artwork(id: string): Artwork { return this.data.artworks.find((a) => a.id === id)!; }
-  artworkBySlug(slug: string): Artwork | null { return this.data.artworks.find((a) => a.slug === slug) ?? null; }
+  artworkBySlug(slug: string): Artwork | null { return this.artworks().find((a) => a.slug === slug) ?? null; }
   support(id: string): Support { return this.data.supports.find((s) => s.id === id)!; }
 
   /** Productos de drops visibles. */
   products(): Product[] {
     const order = new Map(this.visibleDrops().map((d, i) => [d.id, i]));
-    return this.data.products.filter((p) => order.has(p.dropId)).sort((a, b) => order.get(a.dropId)! - order.get(b.dropId)!);
+    const withVariants = new Set(this.data.variants.map((v) => v.productId));
+    return this.data.products
+      .filter((p) => order.has(p.dropId) && withVariants.has(p.id))
+      .sort((a, b) => order.get(a.dropId)! - order.get(b.dropId)!);
   }
   productBySlug(slug: string): Product | null { return this.products().find((p) => p.slug === slug) ?? null; }
   productsOfDrop(dropId: string): Product[] { return this.products().filter((p) => p.dropId === dropId); }
@@ -54,7 +61,10 @@ export class CatalogView {
   variantsOf(productId: string): CatalogVariant[] { return this.data.variants.filter((v) => v.productId === productId); }
   variant(id: string): CatalogVariant | null { return this.data.variants.find((v) => v.id === id) ?? null; }
   available(product: Product): number { return this.variantsOf(product.id).reduce((s, v) => s + v.available, 0); }
-  fromPriceCents(product: Product): number { return Math.min(...this.variantsOf(product.id).map((v) => v.priceCents)); }
+  fromPriceCents(product: Product): number {
+    const prices = this.variantsOf(product.id).map((v) => v.priceCents);
+    return prices.length ? Math.min(...prices) : 0;
+  }
 
   purchasable(product: Product): boolean {
     return isPurchasable(this.phaseOf(this.drop(product.dropId))) && this.available(product) > 0;

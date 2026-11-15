@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { paymentsEnabled } from '@/lib/env';
+import { paymentsEnabled, safeEqual, siteUrl } from '@/lib/env';
 
 const FULL = {
   NEXT_PUBLIC_SUPABASE_URL: 'https://x.supabase.co', NEXT_PUBLIC_SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'service',
@@ -20,5 +20,24 @@ describe('paymentsEnabled', () => {
   it('en modo demo no se cobra', () => {
     stub({ ...FULL, NEXT_PUBLIC_SUPABASE_URL: '' });
     expect(paymentsEnabled()).toBe(false);
+  });
+});
+
+describe('siteUrl', () => {
+  it('usa NEXT_PUBLIC_SITE_URL sin barra final', () => {
+    stub({ NEXT_PUBLIC_SITE_URL: 'https://soapbrxnd.com/' });
+    expect(siteUrl()).toBe('https://soapbrxnd.com');
+  });
+  it('en Vercel sin configurar usa el dominio de producción, no localhost', () => {
+    stub({ NEXT_PUBLIC_SITE_URL: '', VERCEL_PROJECT_PRODUCTION_URL: 'soapbrxnd.vercel.app' });
+    expect(siteUrl()).toBe('https://soapbrxnd.vercel.app');
+  });
+});
+
+describe('safeEqual', () => {
+  it('compara secretos sin filtrar por longitud ni contenido', () => {
+    expect(safeEqual('Bearer abc', 'Bearer abc')).toBe(true);
+    expect(safeEqual('Bearer abc', 'Bearer abd')).toBe(false);
+    expect(safeEqual('x', 'Bearer abc')).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CART_COOKIE, addToCart, parseCart, serializeCart, setLineQuantity } from '@/modules/checkout/cart';
+import { CART_COOKIE, addToCart, parseCart, safeBack, serializeCart, setLineQuantity } from '@/modules/checkout/cart';
 import { quote, shippingZone, SHIPPING_RATES } from '@/modules/checkout/quote';
 
 const A = '11111111-1111-4111-8111-111111111111';
@@ -59,5 +59,14 @@ describe('presupuesto', () => {
   });
   it('variante desconocida', () => {
     expect(() => quote([{ variantId: '33333333-3333-4333-8333-333333333333', quantity: 1 }], variants, null)).toThrow('unavailable_variant');
+  });
+});
+
+describe('safeBack', () => {
+  it('solo deja volver a una ficha de la tienda', () => {
+    expect(safeBack('/p/tee-pompa-repeat')).toBe('/p/tee-pompa-repeat');
+    expect(safeBack('https://malo.example')).toBe('/');
+    expect(safeBack('//malo.example')).toBe('/');
+    expect(safeBack('/p/../admin')).toBe('/');
   });
 });

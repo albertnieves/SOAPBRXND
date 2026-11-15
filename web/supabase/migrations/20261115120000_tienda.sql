@@ -295,12 +295,25 @@ begin
     return private.order_summary(v_order);
   end if;
 
+  -- Freno a acaparar stock sin pagar: como mucho 3 pagos a medias por email.
+  if (select count(*) from public.orders o
+      where o.email = v_email and o.status = 'pending' and o.reserved_until > now()) >= 3 then
+    raise exception 'too_many_pending' using errcode = '22023';
+  end if;
+
   -- Variantes bloqueadas en orden fijo: dos compras de la última unidad se
   -- ponen en fila y la segunda ve la reserva de la primera.
   perform 1 from public.variants v
   where v.id in (select (x ->> 'variant_id')::uuid from jsonb_array_elements(v_items) x)
   order by v.id
   for update;
+
+  -- Doble clic simultáneo con la misma clave: mientras esperábamos el bloqueo,
+  -- el otro envío ya creó el pedido.
+  select * into v_order from public.orders o where o.request_id = p_request_id;
+  if found then
+    return private.order_summary(v_order);
+  end if;
 
   select (x ->> 'variant_id')::uuid into v_bad
   from jsonb_array_elements(v_items) x
@@ -485,10 +498,12 @@ returns integer language plpgsql security definer set search_path = '' as $$
 declare
   v_count integer;
 begin
-  delete from public.holds h where h.expires_at <= now();
+  -- Primero los pedidos y luego sus reservas: el mismo orden de bloqueo que
+  -- checkout_confirm_paid, para que un pago tardío no se cruce con el cron.
   update public.orders o set status = 'expired', updated_at = now()
   where o.status = 'pending' and o.reserved_until <= now();
   get diagnostics v_count = row_count;
+  delete from public.holds h where h.expires_at <= now();
   return v_count;
 end;
 $$;
@@ -515,7 +530,9 @@ alter table public.drop_keys enable row level security;
 
 create policy drops_public_read on public.drops for select to anon, authenticated
   using (private.drop_visible(drops));
-create policy artworks_public_read on public.artworks for select to anon, authenticated using (true);
+-- Un arte se ve cuando está en alguna pieza de un drop visible.
+create policy artworks_public_read on public.artworks for select to anon, authenticated
+  using (exists (select 1 from public.products p where p.artwork_id = artworks.id));
 create policy supports_public_read on public.supports for select to anon, authenticated using (true);
 create policy products_public_read on public.products for select to anon, authenticated
   using (active and exists (select 1 from public.drops d where d.id = products.drop_id));
