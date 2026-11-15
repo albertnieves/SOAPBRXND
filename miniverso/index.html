@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SOAPBRXND — Lavandería</title>
+<meta name="description" content="La tienda de SOAPBRXND en pixel: una lavandería donde cada lavadora es un drop.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #070707;
+    --paper: #f2f0eb;
+    --cream: #e8e0d0;
+    --warm: #c9b99a;
+    --g1: #111113;
+    --g2: #1a1a1d;
+    --g3: #2a2a2e;
+    --g5: #888;
+    --iri1: #9be7ff;
+    --iri2: #c9a7ff;
+    --iri3: #ffb3d9;
+    --ok: #8ff0a4;
+    --warn: #ffd36b;
+    --bad: #ff7a7a;
+    --px: 'Silkscreen', ui-monospace, monospace;
+    --mono: 'Space Mono', ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--ink); color: var(--paper); overflow: hidden;
+    font-family: var(--mono); -webkit-tap-highlight-color: transparent; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  /* ---------- ROOM ---------- */
+  #stage { position: fixed; inset: 0; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #stage.grab { cursor: grabbing; }
+  #stage.hand { cursor: pointer; }
+  #room { position: absolute; left: 0; top: 0; image-rendering: pixelated; image-rendering: crisp-edges; }
+  #says { position: absolute; inset: 0; pointer-events: none; }
+  .say { position: absolute; transform: translate(-50%, -100%); max-width: 240px; width: max-content;
+    background: var(--paper); color: var(--ink); border: 2px solid var(--ink); padding: 5px 9px 6px;
+    font-size: 11px; line-height: 1.35; box-shadow: 0 2px 0 var(--ink), 0 0 0 2px var(--paper);
+    border-radius: 6px; transition: opacity .4s; }
+  .say b { font-family: var(--px); font-weight: 700; font-size: 10px; margin-right: 4px; }
+  .say::after { content: ''; position: absolute; left: 50%; bottom: -8px; width: 8px; height: 6px; margin-left: -4px;
+    background: var(--ink); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+  .say.fade { opacity: 0; }
+
+  #tip { position: fixed; pointer-events: none; z-index: 30; padding: 3px 7px; background: var(--ink); color: var(--paper);
+    border: 2px solid var(--paper); font-family: var(--px); font-size: 10px; letter-spacing: .5px; display: none; white-space: nowrap; }
+
+  /* ---------- HUD ---------- */
+  .chip { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 10px; z-index: 10; display: flex; align-items: center; gap: 8px;
+    background: rgba(7,7,7,.82); border: 2px solid var(--g3); padding: 5px 10px 5px 6px; }
+  .chip canvas { width: 30px; height: 30px; image-rendering: pixelated; background: var(--g2); }
+  .chip .who { font-family: var(--px); font-size: 11px; line-height: 1.15; text-align: left; }
+  .chip .who small { display: block; font-size: 9px; color: var(--warm); }
+  .chip:hover { border-color: var(--paper); }
+
+  .rail { position: fixed; top: calc(62px + env(safe-area-inset-top)); z-index: 10; display: flex; flex-direction: column; gap: 6px; }
+  .rail.left { left: 10px; }
+  .rail.right { right: 10px; top: calc(10px + env(safe-area-inset-top)); }
+  .rbtn { width: 54px; padding: 6px 2px 5px; background: rgba(7,7,7,.82); border: 2px solid var(--g3); display: flex; flex-direction: column;
+    align-items: center; gap: 4px; font-family: var(--px); font-size: 8px; letter-spacing: .3px; line-height: 1; }
+  .rbtn:hover, .rbtn:focus-visible { border-color: var(--paper); outline: none; }
+  .rbtn img { width: 27px; height: 27px; image-rendering: pixelated; }
+
+  #chat { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(66px + env(safe-area-inset-bottom)); z-index: 10;
+    width: min(460px, calc(100% - 20px)); display: flex; background: rgba(7,7,7,.88); border: 2px solid var(--g3); }
+  #chat:focus-within { border-color: var(--paper); }
+  #chat input { flex: 1; min-width: 0; background: none; border: 0; outline: none; padding: 9px 10px; font-size: 12px; }
+  #chat input::placeholder { color: var(--g5); }
+  #chat button { border: 0; border-left: 2px solid var(--g3); background: none; padding: 0 12px; font-family: var(--px); font-size: 10px; }
+
+  #dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); background: rgba(7,7,7,.94); border-top: 2px solid var(--g3); }
+  .dbtn { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: var(--px); font-size: 9px; padding: 2px 8px; justify-self: center; position: relative; }
+  .dbtn img { width: 24px; height: 24px; image-rendering: pixelated; }
+  .dbtn.shop { font-size: 16px; font-weight: 700; letter-spacing: 2px; padding: 6px 18px; border: 2px solid var(--paper); background: var(--paper); color: var(--ink); }
+  .dbtn .n { position: absolute; top: -4px; right: 0; min-width: 16px; height: 16px; padding: 0 3px; background: var(--iri2); color: var(--ink); font-size: 9px; line-height: 16px; text-align: center; }
+  .dbtn .n:empty { display: none; }
+
+  #toast { position: fixed; top: calc(14px + env(safe-area-inset-top)); left: 50%; transform: translate(-50%, calc(-100% - 40px)); z-index: 60; background: var(--paper); color: var(--ink);
+    border: 2px solid var(--ink); box-shadow: 0 0 0 2px var(--paper); padding: 8px 14px; font-family: var(--px); font-size: 11px; transition: transform .25s; max-width: calc(100% - 28px); text-align: center; }
+  #toast.on { transform: translate(-50%, 0); }
+
+  /* ---------- PANELS ---------- */
+  #panel { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0,0,0,.55); padding: 14px; }
+  #panel[hidden] { display: none; }
+  .win { width: min(560px, 100%); max-height: min(86vh, 760px); display: flex; flex-direction: column; background: var(--g1);
+    border: 2px solid var(--paper); box-shadow: 6px 6px 0 #000; animation: pop .16s steps(3); }
+  @keyframes pop { from { transform: scale(.92); opacity: 0; } }
+  .win header { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--paper); color: var(--ink); padding: 6px 6px 6px 12px; }
+  .win header h2 { margin: 0; font-family: var(--px); font-size: 13px; letter-spacing: 1px; }
+  .win header button { width: 26px; height: 26px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); font-family: var(--px); font-size: 12px; line-height: 1; }
+  .win .body { overflow-y: auto; padding: 16px; font-size: 13px; line-height: 1.55; }
+  .win .body p { margin: 0 0 12px; }
+  .note { margin-top: 14px; padding: 8px 10px; border: 2px dashed var(--g3); color: var(--warm); font-size: 11px; }
+  .eyebrow { font-family: var(--px); font-size: 10px; color: var(--warm); letter-spacing: 1px; margin-bottom: 6px; }
+  .big { font-family: var(--px); font-size: 22px; line-height: 1.1; margin: 0 0 10px; }
+  .pbtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 14px; background: var(--paper); color: var(--ink);
+    border: 2px solid var(--paper); box-shadow: inset -3px -3px 0 rgba(0,0,0,.18); font-family: var(--px); font-size: 11px; letter-spacing: .5px; }
+  .pbtn:active { transform: translateY(1px); box-shadow: inset 3px 3px 0 rgba(0,0,0,.18); }
+  .pbtn.ghost { background: none; color: var(--paper); box-shadow: none; }
+  .pbtn[disabled] { opacity: .45; cursor: not-allowed; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .card { background: var(--cream); color: var(--ink); border: 2px solid var(--ink); text-align: left; padding: 0; display: flex; flex-direction: column; }
+  .card .img { display: grid; place-items: center; height: 120px; background: var(--paper); border-bottom: 2px solid var(--ink); position: relative; }
+  .card .img img { width: 96px; height: 96px; image-rendering: pixelated; }
+  .card .meta { padding: 8px 9px 9px; font-family: var(--px); font-size: 10px; line-height: 1.3; }
+  .card .meta strong { display: block; font-size: 11px; }
+  .tag { position: absolute; top: 6px; left: 6px; font-family: var(--px); font-size: 9px; padding: 2px 5px; background: var(--ink); color: var(--paper); }
+  .tag.low { background: var(--warn); color: var(--ink); }
+  .tag.out { background: var(--bad); color: var(--ink); }
+  .prod { display: grid; grid-template-columns: 200px 1fr; gap: 16px; }
+  .prod .hang { background: var(--paper); border: 2px solid var(--ink); display: grid; place-items: center; padding: 18px 0 10px; position: relative; }
+  .prod .hang img { width: 160px; height: 160px; image-rendering: pixelated; }
+  .prod .hang::before { content: ''; position: absolute; top: 6px; left: 50%; width: 30px; height: 12px; margin-left: -15px; border: 3px solid var(--ink); border-bottom: 0; border-radius: 12px 12px 0 0; }
+  .price { font-family: var(--px); font-size: 18px; margin: 4px 0 12px; }
+  .sizes { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+  .sz { min-width: 42px; padding: 7px 8px; background: none; border: 2px solid var(--g3); font-family: var(--px); font-size: 11px; }
+  .sz.on { border-color: var(--paper); background: var(--paper); color: var(--ink); }
+  .sz[disabled] { text-decoration: line-through; opacity: .35; cursor: not-allowed; }
+  .stock { font-family: var(--px); font-size: 10px; min-height: 14px; margin-bottom: 12px; color: var(--ok); }
+  .stock.low { color: var(--warn); }
+  .stock.out { color: var(--bad); }
+  .bagline { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 2px solid var(--g2); }
+  .bagline img { width: 52px; height: 52px; image-rendering: pixelated; background: var(--paper); }
+  .qty { display: flex; align-items: center; gap: 6px; font-family: var(--px); font-size: 11px; }
+  .qty button { width: 24px; height: 24px; background: none; border: 2px solid var(--g3); font-family: var(--px); }
+  .total { display: flex; justify-content: space-between; font-family: var(--px); font-size: 14px; margin: 14px 0; }
+  .wardrobe { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: start; }
+  .mirror { background: linear-gradient(var(--g2), var(--g1)); border: 2px solid var(--g3); display: grid; place-items: center; padding: 10px 0; }
+  .mirror canvas { width: 132px; height: 168px; image-rendering: pixelated; }
+  .opt { margin-bottom: 12px; }
+  .opt .eyebrow { margin-bottom: 5px; }
+  .sw { width: 30px; height: 30px; border: 2px solid var(--g3); padding: 0; }
+  .sw.on, .ch.on { border-color: var(--paper); box-shadow: 0 0 0 2px var(--ink) inset; }
+  .ch { padding: 6px 9px; background: none; border: 2px solid var(--g3); font-family: var(--px); font-size: 10px; }
+  .field { display: flex; gap: 8px; }
+  .field input { flex: 1; min-width: 0; padding: 9px 10px; background: var(--ink); border: 2px solid var(--g3); outline: none; font-family: var(--px); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+  .field input:focus { border-color: var(--paper); }
+  .count { display: flex; gap: 8px; margin: 8px 0 14px; }
+  .count div { background: var(--ink); border: 2px solid var(--g3); padding: 6px 8px; text-align: center; min-width: 54px; }
+  .count b { display: block; font-family: var(--px); font-size: 18px; }
+  .count span { font-family: var(--px); font-size: 8px; color: var(--g5); }
+  .filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .arch { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .polaroid { background: var(--paper); color: var(--ink); padding: 6px 6px 8px; border: 2px solid var(--ink); }
+  .polaroid i { display: block; height: 90px; margin-bottom: 6px; }
+  .polaroid b { display: block; font-family: var(--px); font-size: 9px; color: #6b6458; }
+  .polaroid span { font-size: 11px; line-height: 1.3; }
+
+  /* ---------- INTRO ---------- */
+  #intro { position: fixed; inset: 0; z-index: 80; background: var(--ink); display: grid; place-items: center; text-align: center; transition: opacity .5s; padding: 20px; }
+  #intro.out { opacity: 0; pointer-events: none; }
+  #intro canvas.logo { width: min(486px, 86vw); image-rendering: pixelated; }
+  #intro canvas.pompa { width: 88px; height: 112px; image-rendering: pixelated; margin: 22px auto 6px; display: block; animation: bob 1s steps(2) infinite; }
+  @keyframes bob { 50% { transform: translateY(-4px); } }
+  #intro .sub { font-family: var(--px); font-size: 11px; letter-spacing: 2px; color: var(--warm); margin: 14px 0 22px; }
+  #intro .bar { width: 200px; height: 10px; border: 2px solid var(--paper); margin: 0 auto 20px; padding: 1px; }
+  #intro .bar i { display: block; height: 100%; width: 0; background: var(--paper); animation: load 1.1s steps(10) forwards; }
+  @keyframes load { to { width: 100%; } }
+  #intro .pbtn { font-size: 13px; padding: 11px 26px; }
+
+  @media (max-width: 600px) {
+    .prod, .wardrobe { grid-template-columns: 1fr; }
+    .prod .hang img { width: 128px; height: 128px; }
+    .rbtn { width: 46px; font-size: 7px; }
+    .rbtn img { width: 24px; height: 24px; }
+    .chip .who small { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #intro canvas.pompa { animation: none; }
+    .win { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="stage" aria-label="Tienda en pixel: una lavandería. Toca el suelo para moverte y los muebles para usarlos. Todas las acciones están también en los botones.">
+  <canvas id="room" width="320" height="256"></canvas>
+  <div id="says"></div>
+</div>
+<div id="tip"></div>
+
+<button class="chip" data-act="login" aria-label="Tu perfil">
+  <canvas id="chipAv" width="22" height="22"></canvas>
+  <span class="who"><span id="nick">INVITADO</span><small>ENTRAR</small></span>
+</button>
+
+<nav class="rail left" aria-label="Lavandería">
+  <button class="rbtn" data-act="drops"><img data-icon="washer" alt="">DROPS</button>
+  <button class="rbtn" data-act="wardrobe"><img data-icon="hanger" alt="">VESTIDOR</button>
+  <button class="rbtn" data-act="key"><img data-icon="key" alt="">TU LLAVE</button>
+  <button class="rbtn" data-act="archive"><img data-icon="frame" alt="">ARCHIVO</button>
+</nav>
+<nav class="rail right" aria-label="Información">
+  <button class="rbtn" data-act="story"><img data-icon="book" alt="">HISTORIA</button>
+  <button class="rbtn" data-act="contact"><img data-icon="mail" alt="">CONTACTO</button>
+  <button class="rbtn" data-act="shipping"><img data-icon="truck" alt="">ENVÍOS</button>
+  <button class="rbtn" data-act="returns"><img data-icon="back" alt="">DEVOLUC.</button>
+</nav>
+
+<form id="chat" autocomplete="off">
+  <input id="chatIn" maxlength="120" placeholder="Habla con Daniel… (tallas, drops, envíos)" aria-label="Mensaje">
+  <button type="submit">DECIR</button>
+</form>
+
+<nav id="dock" aria-label="Tienda">
+  <button class="dbtn" data-act="catalog"><img data-icon="grid" alt="">PRODUCTOS</button>
+  <button class="dbtn shop" data-act="home">SHOP</button>
+  <button class="dbtn" data-act="bag"><img data-icon="bag" alt="">BOLSA<span class="n" id="bagN"></span></button>
+</nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="panel" hidden>
+  <div class="win" role="dialog" aria-modal="true" aria-labelledby="pTitle">
+    <header><h2 id="pTitle"></h2><button data-act="close" aria-label="Cerrar">X</button></header>
+    <div class="body" id="pBody"></div>
+  </div>
+</div>
+
+<div id="intro">
+  <div>
+    <canvas class="logo" id="introLogo"></canvas>
+    <div class="sub">LAVANDERÍA DE DROPS · ABIERTA 24H</div>
+    <canvas class="pompa" id="introPompa" width="22" height="28"></canvas>
+    <div class="bar"><i></i></div>
+    <button class="pbtn" id="enter">ENTRAR</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================
+   CONFIG — contenido de ejemplo. Precios, stock y llaves son
+   placeholders hasta conectar Supabase (Fase 2).
+   ========================================================= */
+const BRAND = 'SOAPBRXND';
+const DROPS = [
+  { id: 'd01', n: '01', name: 'FIRST SIGNAL', status: 'available',
+    copy: 'El primer lavado. Las piezas base de la marca: negro, crema y una pompa que no explota.' },
+  { id: 'd02', n: '02', name: 'VISUAL PACK 001', status: 'coming', date: '2026-12-12T20:00:00+01:00',
+    copy: 'Gráficos, loops y una prenda sorpresa. Se abre cuando termine el centrifugado.' },
+  { id: 'd03', n: '03', name: 'LOCKED DROP', status: 'locked',
+    copy: 'Solo con llave. Las llaves se reparten antes de cada drop, a quien esté dentro.' },
+  { id: 'd04', n: '04', name: 'NEXT CHAPTER', status: 'locked', hidden: true,
+    copy: 'Todavía en el tambor.' },
+];
+const PRODUCTS = [
+  { id: 'hoodie-fs', drop: 'd01', name: 'Hoodie First Signal', price: 65, art: 'hoodie', color: '#1a1a1e', print: '#e8e0d0',
+    sizes: { S: 3, M: 5, L: 2, XL: 0 }, wear: ['top', 'hoodie'],
+    desc: 'Algodón grueso 400 g, corte boxy. Pompa bordada en el pecho y FIRST SIGNAL en la espalda.' },
+  { id: 'tee-pompa', drop: 'd01', name: 'Tee Pompa', price: 35, art: 'tee', color: '#e8e0d0', print: '#1a1a1e',
+    sizes: { S: 8, M: 6, L: 1, XL: 4 }, wear: ['top', 'tee'],
+    desc: 'Camiseta 240 g lavada a la piedra. Serigrafía de la pompa por delante.' },
+  { id: 'beanie-brx', drop: 'd01', name: 'Gorro BRX', price: 25, art: 'beanie', color: '#b9a3f5', print: '#1a1a1e',
+    sizes: { 'ÚNICA': 7 }, wear: ['head', 'beanie'],
+    desc: 'Punto acanalado con pompón. Etiqueta tejida BRX en el doblez.' },
+  { id: 'cap-signal', drop: 'd01', name: 'Gorra Signal', price: 30, art: 'cap', color: '#2a2a30', print: '#9be7ff',
+    sizes: { 'ÚNICA': 0 }, wear: ['head', 'cap'],
+    desc: 'Six panel desestructurada. Agotada en el primer lavado — vuelve en el próximo.' },
+  { id: 'tote-lav', drop: 'd01', name: 'Tote Lavandería', price: 20, art: 'tote', color: '#f2f0eb', print: '#1a1a1e',
+    sizes: { 'ÚNICA': 12 }, wear: null,
+    desc: 'Para la ropa sucia o para la limpia. Lona 12 oz con el logo de la lavandería.' },
+];
+const DEMO_KEYS = ['POMPA-0001']; // llave de prueba; las reales vendrán de la base de datos
+const ARCHIVE = [
+  { cat: 'visuals', t: 'Ambient Textures Vol. I', c: ['#2a2a2e', '#9be7ff'] },
+  { cat: 'music', t: 'Frequencies — EP artwork', c: ['#1a1a1e', '#ffb3d9'] },
+  { cat: 'identity', t: 'Brand system 2025', c: ['#e8e0d0', '#1a1a1e'] },
+  { cat: 'drops', t: 'Capsule 000', c: ['#c9b99a', '#070707'] },
+  { cat: 'visuals', t: 'Motion study — loops', c: ['#c9a7ff', '#1a1a1e'] },
+  { cat: 'music', t: 'Digital noise project', c: ['#070707', '#8ff0a4'] },
+];
+
+/* ========================================================= */
+const LW = 320, LH = 256, COLS = 9, ROWS = 9, OX = 160, OY = 92, WALL = 78;
+const $ = s => document.querySelector(s);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('sbx_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('sbx_' + k, JSON.stringify(v)); } catch (e) {} },
+};
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const euro = n => n.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' €';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ---------------- pixel primitives ---------------- */
+function P(cx, cy, z = 0) { return [OX + (cx - cy) * 16, OY + (cx + cy) * 8 - z]; }
+function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; }
+function fillPoly(g, pts, col) {
+  g.fillStyle = col;
+  let minY = Infinity, maxY = -Infinity;
+  for (const p of pts) { minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); }
+  for (let y = Math.floor(minY); y < Math.ceil(maxY); y++) {
+    const sy = y + 0.5, xs = [];
+    for (let i = 0; i < pts.length; i++) {
+      const [x1, y1] = pts[i], [x2, y2] = pts[(i + 1) % pts.length];
+      if ((y1 <= sy && y2 > sy) || (y2 <= sy && y1 > sy)) xs.push(x1 + (sy - y1) * (x2 - x1) / (y2 - y1));
+    }
+    xs.sort((a, b) => a - b);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const a = Math.round(xs[k]), b = Math.round(xs[k + 1]);
+      if (b > a) g.fillRect(a, y, b - a, 1);
+    }
+  }
+}
+function line(g, x0, y0, x1, y1, col) {
+  x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+  g.fillStyle = col;
+  const dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1, dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (let i = 0; i < 2000; i++) {
+    g.fillRect(x0, y0, 1, 1);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+function L3(g, a, b, col) { line(g, a[0], a[1], b[0], b[1], col); }
+function strokePoly(g, pts, col) { for (let i = 0; i < pts.length; i++) L3(g, pts[i], pts[(i + 1) % pts.length], col); }
+function px(g, x, y, col, w = 1, h = 1) { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); }
+// visible faces of an iso box: top, front-left (y = y+d plane), front-right (x = x+w plane)
+function isoBox(g, x, y, z, w, d, h, top, left, right, out) {
+  const T = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)];
+  const Lf = [P(x, y + d, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x, y + d, z + h)];
+  const Rf = [P(x + w, y, z), P(x + w, y + d, z), P(x + w, y + d, z + h), P(x + w, y, z + h)];
+  fillPoly(g, Lf, left); fillPoly(g, Rf, right); fillPoly(g, T, top);
+  if (out) { strokePoly(g, Lf, out); strokePoly(g, Rf, out); strokePoly(g, T, out); }
+}
+const yFace = (g, x0, x1, y, z0, z1, col) => fillPoly(g, [P(x0, y, z0), P(x1, y, z0), P(x1, y, z1), P(x0, y, z1)], col);
+const xFace = (g, x, y0, y1, z0, z1, col) => fillPoly(g, [P(x, y0, z0), P(x, y1, z0), P(x, y1, z1), P(x, y0, z1)], col);
+
+/* ---------------- 3x5 pixel font ---------------- */
+const FONT = {
+  A: [2, 5, 7, 5, 5], B: [6, 5, 6, 5, 6], C: [3, 4, 4, 4, 3], D: [6, 5, 5, 5, 6], E: [7, 4, 6, 4, 7], F: [7, 4, 6, 4, 4],
+  G: [3, 4, 5, 5, 3], H: [5, 5, 7, 5, 5], I: [7, 2, 2, 2, 7], J: [1, 1, 1, 5, 2], K: [5, 5, 6, 5, 5], L: [4, 4, 4, 4, 7],
+  M: [5, 7, 7, 5, 5], N: [5, 7, 7, 7, 5], O: [2, 5, 5, 5, 2], P: [6, 5, 6, 4, 4], Q: [2, 5, 5, 6, 3], R: [6, 5, 6, 5, 5],
+  S: [3, 4, 2, 1, 6], T: [7, 2, 2, 2, 2], U: [5, 5, 5, 5, 7], V: [5, 5, 5, 5, 2], W: [5, 5, 7, 7, 5], X: [5, 5, 2, 5, 5],
+  Y: [5, 5, 2, 2, 2], Z: [7, 1, 2, 4, 7], 0: [7, 5, 5, 5, 7], 1: [2, 6, 2, 2, 7], 2: [6, 1, 2, 4, 7], 3: [6, 1, 2, 1, 6],
+  4: [5, 5, 7, 1, 1], 5: [7, 4, 6, 1, 6], 6: [3, 4, 7, 5, 7], 7: [7, 1, 1, 2, 2], 8: [7, 5, 7, 5, 7], 9: [7, 5, 7, 1, 6],
+  ' ': [0, 0, 0, 0, 0], '-': [0, 0, 7, 0, 0], '·': [0, 0, 2, 0, 0], '.': [0, 0, 0, 0, 2], '!': [2, 2, 2, 0, 2], '?': [6, 1, 2, 0, 2], ':': [0, 2, 0, 2, 0],
+};
+function textPts(str) {
+  str = str.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const pts = []; let x = 0;
+  for (const ch of str) {
+    const gl = FONT[ch] || FONT[' '];
+    for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (gl[r] & (4 >> c)) pts.push([x + c, r]);
+    x += 4;
+  }
+  return { w: Math.max(0, x - 1), pts };
+}
+// skew: 0 flat, 1 = runs down-right (y-planes), -1 = runs up-right (x-planes)
+function drawText(g, str, x, y, col, scale = 1, skew = 0) {
+  const t = textPts(str); g.fillStyle = col; x = Math.round(x); y = Math.round(y);
+  for (const [tx, ty] of t.pts) for (let a = 0; a < scale; a++) for (let b = 0; b < scale; b++) {
+    const X = tx * scale + a, Y = ty * scale + b;
+    const gx = Math.floor(tx / 4) * 4 * scale; // letras rectas, línea base escalonada (más legible)
+    g.fillRect(x + X, y + Y + (skew ? skew * Math.floor(gx / 2) : 0), 1, 1);
+  }
+  return t.w * scale;
+}
+function blit(g, rows, x, y, pal, skew = 0) {
+  x = Math.round(x); y = Math.round(y);
+  rows.forEach((row, ry) => { for (let rx = 0; rx < row.length; rx++) {
+    const col = pal[row[rx]]; if (!col) continue;
+    g.fillStyle = col; g.fillRect(x + rx, y + ry + (skew ? skew * Math.floor(rx / 2) : 0), 1, 1);
+  } });
+}
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16); let r = n >> 16, gg = (n >> 8) & 255, b = n & 255;
+  const f = v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k)));
+  return '#' + [f(r), f(gg), f(b)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+/* ---------------- garment art (16x16) ---------------- */
+const ART = {
+  hoodie: [
+    '....oooooooo....', '...obbbddbbbo...', '..obbbo..obbbo..', '.obbbbo..obbbbo.', 'obbbbbboobbbbbbo',
+    'obbbbbbbbbbbbbbo', 'obbobbbbbbbbobbo', 'obbobbbwwbbbobbo', 'obbobbwbbwbbobbo', 'obbobbbwwbbbobbo',
+    'obbobbbbbbbbobbo', 'oddobbbbbbbbobdo', 'oddobbbbbbbbobdo', '.oo.oddddddddo.oo', '....oooooooooo..'],
+  tee: [
+    '................', '....oo....oo....', '..oobboooobboo..', '.obbbbbwwbbbbbo.', 'obbbbbbbbbbbbbbo',
+    'obbobbbbbbbbobbo', '.ooobbbwwbbbooo.', '...obbwbbwbbo...', '...obbbwwbbbo...', '...obbbbbbbbo...',
+    '...obbbbbbbbo...', '...obbbbbbbbo...', '...oddddddddo...', '...oooooooooo...'],
+  beanie: [
+    '................', '......oooo......', '.....owwwwo.....', '......oooo......', '....oobbbboo....',
+    '...obbbbbbbbo...', '..obbbbbbbbbbo..', '..obbdbbbbdbbo..', '..obbdbbbbdbbo..', '..obbdbbbbdbbo..',
+    '..oddddddddddo..', '..odwdwdwdwdwo..', '..oddddddddddo..', '...oooooooooo...'],
+  cap: [
+    '................', '................', '......oooo......', '....oobbbboo....', '...obbbbbbbbo...',
+    '..obbbwwwwbbbo..', '..obbbwbbwbbbo..', '..obbbbbbbbbbo..', '..oddddddddddooo', '..oooooooodddddo',
+    '..........oooooo'],
+  tote: [
+    '................', '.....oooooo.....', '....o......o....', '....o......o....', '..oooooooooooo..',
+    '..obbbbbbbbbbo..', '..obbbwwwwbbbo..', '..obbwbbbbwbbo..', '..obbbwwwwbbbo..', '..obbbbbbbbbbo..',
+    '..obwbwbwbwbwo..', '..obbbbbbbbbbo..', '..oddddddddddo..', '..oooooooooooo..'],
+};
+function artCanvas(p) {
+  const [c, g] = mk(16, 16);
+  const rows = ART[p.art], off = Math.floor((16 - rows.length) / 2);
+  blit(g, rows, 0, off, { o: '#050506', b: p.color, d: shade(p.color, -0.25), w: p.print });
+  return c;
+}
+const artURL = {};
+PRODUCTS.forEach(p => { artURL[p.id] = artCanvas(p).toDataURL(); });
+
+/* ---------------- icons (bitmaps) ---------------- */
+const ICONS = {
+  washer: ['#########', '#.#.#...#', '#########', '#..###..#', '#.#...#.#', '#.#.#.#.#', '#.#...#.#', '#..###..#', '#########'],
+  hanger: ['....##...', '...#..#..', '......#..', '.....#...', '....#....', '...#.#...', '..#...#..', '.#.....#.', '#########'],
+  key: ['.........', '.###.....', '#...#....', '#...######', '#...#.#.#', '.###.....', '.........'],
+  frame: ['#########', '#.......#', '#.#####.#', '#.#...#.#', '#.#.#.#.#', '#.#####.#', '#.......#', '#########'],
+  book: ['#########', '#...#...#', '#.#.#.#.#', '#...#...#', '#.#.#.#.#', '#...#...#', '#########'],
+  mail: ['#########', '##.....##', '#.#...#.#', '#..#.#..#', '#...#...#', '#.......#', '#########'],
+  truck: ['######...', '#....#...', '#....####.', '#....#..#', '#....#...#', '##########', '.##....##.'],
+  back: ['...#.....', '..##.....', '.#######.', '..##....#', '...#....#', '........#', '..######.'],
+  grid: ['###.###', '###.###', '###.###', '.......', '###.###', '###.###', '###.###'],
+  bag: ['..###..', '.#...#.', '.#...#.', '#######', '#.....#', '#.#.#.#', '#.....#', '#######'],
+};
+function iconURL(name, col = '#f2f0eb') {
+  const rows = ICONS[name]; const w = Math.max(...rows.map(r => r.length)), h = rows.length, s = Math.max(w, h);
+  const [c, g] = mk(s, s);
+  blit(g, rows, Math.floor((s - w) / 2), Math.floor((s - h) / 2), { '#': col });
+  return c.toDataURL();
+}
+document.querySelectorAll('img[data-icon]').forEach(im => { im.src = iconURL(im.dataset.icon); });
+
+/* ---------------- Pompa (la mascota) ---------------- */
+const SKINS = {
+  iris: { name: 'Iris', base: '#d9ecff', dark: '#a9c4ea', line: '#2b2540' },
+  menta: { name: 'Menta', base: '#cff6e2', dark: '#93d6b5', line: '#1f3a2f' },
+  rosa: { name: 'Rosa', base: '#ffd9e9', dark: '#efa8c6', line: '#4a2238' },
+  humo: { name: 'Humo', base: '#d3d3da', dark: '#9d9daa', line: '#25252c' },
+  noche: { name: 'Noche', base: '#3c3c58', dark: '#28283d', line: '#0b0b12' },
+};
+const TOPS = { none: 'Nada', hoodie: 'Hoodie First Signal', tee: 'Tee Pompa' };
+const HEADS = { none: 'Nada', beanie: 'Gorro BRX', cap: 'Gorra Signal' };
+const FACES = { none: 'Nada', shades: 'Gafas' };
+const WEAR_COLORS = { hoodie: '#1a1a1e', tee: '#e8e0d0', beanie: '#b9a3f5', cap: '#2a2a30' };
+const IRI = ['#9be7ff', '#c9a7ff', '#ffb3d9'];
+
+const spriteCache = new Map();
+function pompaSprite(o, frame = 0, facing = 1) {
+  const key = [o.skin, o.top, o.head, o.face, frame, facing].join('|');
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const [c, g] = mk(22, 28);
+  const sk = SKINS[o.skin] || SKINS.iris;
+  const cx = 11, cy = 14, r = 8, f = facing > 0 ? 1 : -1;
+  // feet
+  const footY = cy + r - 1;
+  const lUp = frame === 1 ? 1 : 0, rUp = frame === 2 ? 1 : 0;
+  px(g, cx - 5, footY - lUp, sk.line, 4, 3); px(g, cx + 1, footY - rUp, sk.line, 4, 3);
+  px(g, cx - 4, footY - lUp, shade(sk.base, -0.15), 2, 1); px(g, cx + 2, footY - rUp, shade(sk.base, -0.15), 2, 1);
+  // body
+  const topCol = o.top !== 'none' ? WEAR_COLORS[o.top] : null;
+  const headCol = o.head !== 'none' ? WEAR_COLORS[o.head] : null;
+  for (let y = 0; y < 28; y++) for (let x = 0; x < 22; x++) {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy, d = Math.hypot(dx, dy);
+    if (d > r) continue;
+    let col;
+    if (d > r - 1.1) col = sk.line;
+    else {
+      col = (dx + dy > 4.5) ? sk.dark : sk.base;
+      if (d > r - 2.1) { const a = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI); col = IRI[Math.floor(a * 6) % 3]; if (dx + dy > 4.5) col = shade(col, -0.2); }
+      if (d > 3.2 && d < 5.3 && dx < -1 && dy < -1.5) col = '#ffffff';
+      if (topCol && dy > (o.top === 'tee' ? 2.5 : 1.5)) {
+        col = (dx + dy > 4.5) ? shade(topCol, -0.3) : topCol;
+        if (Math.floor(dy) === (o.top === 'tee' ? 2 : 1)) col = shade(topCol, topCol === '#e8e0d0' ? -0.2 : 0.18);
+      }
+      if (headCol && dy < -3.5) {
+        col = (dx + dy > 2) ? shade(headCol, -0.25) : headCol;
+        if (Math.floor(dy) === -4) col = shade(headCol, -0.35);
+      }
+    }
+    px(g, x, y, col);
+  }
+  // hoodie strings / prints
+  if (o.top === 'hoodie') { px(g, cx - 2 + f, cy + 3, '#e8e0d0', 1, 2); px(g, cx + 1 + f, cy + 3, '#e8e0d0', 1, 2); }
+  if (o.top === 'tee') { px(g, cx - 1 + f, cy + 4, '#1a1a1e', 2, 2); }
+  // head wear extras
+  if (o.head === 'beanie') { px(g, cx - 1, cy - r - 2, '#f2f0eb', 3, 2); px(g, cx - 1, cy - r - 2, sk.line, 3, 1); }
+  if (o.head === 'cap') { const bx = f > 0 ? cx + 4 : cx - 9; px(g, bx, cy - 4, sk.line, 5, 1); px(g, bx, cy - 3, shade(WEAR_COLORS.cap, 0.2), 5, 1); px(g, cx - 1, cy - 2 - 4, '#9be7ff', 2, 1); }
+  // eyes
+  const ex = cx + (f > 0 ? 1 : -2);
+  if (o.face === 'shades') { px(g, ex - 4, cy - 2, '#070707', 9, 2); px(g, ex - 3, cy - 2, '#9be7ff', 1, 1); px(g, ex + 2, cy - 2, '#9be7ff', 1, 1); }
+  else { px(g, ex - 3, cy - 2, '#111', 1, 2); px(g, ex + 2, cy - 2, '#111', 1, 2); }
+  // floating mini bubble (antenna)
+  if (o.head === 'none') {
+    const bx = cx + 5 * f, by = cy - r - 3;
+    px(g, bx - 1, by - 2, sk.line, 3, 1); px(g, bx - 1, by + 2, sk.line, 3, 1); px(g, bx - 2, by - 1, sk.line, 1, 3); px(g, bx + 2, by - 1, sk.line, 1, 3);
+    px(g, bx - 1, by - 1, '#ffffff', 1, 1); px(g, bx, by, IRI[1], 2, 2);
+  }
+  spriteCache.set(key, c);
+  return c;
+}
+
+/* ---------------- Daniel (pastilla de jabón) ---------------- */
+function danielSprite(frame = 0) {
+  const key = 'daniel' + frame;
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const [c, g] = mk(20, 26);
+  const base = '#f6c9d6', dark = '#e29cb5', line = '#4a2236', top = '#fde3ea';
+  // bar body (rounded rectangle 16x22)
+  for (let y = 2; y < 25; y++) for (let x = 2; x < 18; x++) {
+    const corner = (x < 4 || x > 15) && (y < 4 || y > 22);
+    const edge = x === 2 || x === 17 || y === 2 || y === 24;
+    if (corner && ((x === 2 || x === 17) && (y === 2 || y === 24))) continue;
+    let col = x > 13 ? dark : base;
+    if (y < 5) col = top;
+    if (edge || (corner && (x === 3 || x === 16) && (y === 3 || y === 23))) col = line;
+    px(g, x, y, col);
+  }
+  // engraved S
+  [[7, 15], [8, 15], [9, 15], [6, 16], [7, 17], [8, 17], [9, 18], [6, 19], [7, 19], [8, 19]].forEach(([x, y]) => px(g, x + 1, y, dark));
+  // face
+  const blink = frame === 3;
+  px(g, 6, 8, line, 1, blink ? 1 : 2); px(g, 12, 8, line, 1, blink ? 1 : 2);
+  px(g, 8, 11, line, 3, 1); px(g, 7, 10, line, 1, 1); px(g, 11, 10, line, 1, 1);
+  px(g, 4, 10, '#ff9fbd', 2, 1); px(g, 14, 10, '#ff9fbd', 2, 1);
+  // arms
+  const wave = frame === 1 || frame === 2;
+  px(g, 0, wave ? 9 : 14, line, 2, 1); px(g, 0, wave ? 10 : 15, base, 2, 2);
+  px(g, 18, 14, line, 2, 1); px(g, 18, 15, dark, 2, 2);
+  // shine
+  px(g, 4, 6, '#ffffff', 2, 1); px(g, 4, 7, '#ffffff', 1, 1);
+  spriteCache.set(key, c);
+  return c;
+}
+
+/* ---------------- room background ---------------- */
+function buildBG() {
+  const [c, g] = mk(LW, LH);
+  const TB = 34;
+  fillPoly(g, [P(0, 0, 0), P(COLS, 0, 0), P(COLS, 0, WALL), P(0, 0, WALL)], '#27272c');
+  fillPoly(g, [P(0, 0, 0), P(0, ROWS, 0), P(0, ROWS, WALL), P(0, 0, WALL)], '#1d1d22');
+  for (let t = 1; t < COLS; t++) L3(g, P(t, 0, TB + 2), P(t, 0, WALL - 1), '#2f2f35');
+  for (let t = 1; t < ROWS; t++) L3(g, P(0, t, TB + 2), P(0, t, WALL - 1), '#232328');
+  // tiled lower band
+  fillPoly(g, [P(0, 0, 0), P(COLS, 0, 0), P(COLS, 0, TB), P(0, 0, TB)], '#ebe8e1');
+  fillPoly(g, [P(0, 0, 0), P(0, ROWS, 0), P(0, ROWS, TB), P(0, 0, TB)], '#d4d0c7');
+  for (let z = 7; z < TB; z += 7) { L3(g, P(0, 0, z), P(COLS, 0, z), '#d3cdc1'); L3(g, P(0, 0, z), P(0, ROWS, z), '#bfb9ad'); }
+  for (let t = 0.5; t < COLS; t += 0.5) L3(g, P(t, 0, 0), P(t, 0, TB), '#d3cdc1');
+  for (let t = 0.5; t < ROWS; t += 0.5) L3(g, P(0, t, 0), P(0, t, TB), '#bfb9ad');
+  L3(g, P(0, 0, TB), P(COLS, 0, TB), '#8f897d'); L3(g, P(0, 0, TB), P(0, ROWS, TB), '#7a756b');
+  L3(g, P(0, 0, TB + 1), P(COLS, 0, TB + 1), '#121215'); L3(g, P(0, 0, TB + 1), P(0, ROWS, TB + 1), '#0e0e11');
+  L3(g, P(0, 0, 0), P(0, 0, WALL), '#111114');
+  // wall caps + ends
+  fillPoly(g, [P(0, 0, WALL), P(COLS, 0, WALL), P(COLS, -0.25, WALL), P(-0.25, -0.25, WALL), P(-0.25, ROWS, WALL), P(0, ROWS, WALL)], '#e8e0d0');
+  fillPoly(g, [P(0, ROWS, -6), P(-0.25, ROWS, -6), P(-0.25, ROWS, WALL), P(0, ROWS, WALL)], '#a99f8c');
+  fillPoly(g, [P(COLS, 0, -6), P(COLS, -0.25, -6), P(COLS, -0.25, WALL), P(COLS, 0, WALL)], '#c9bfac');
+  // floor thickness
+  fillPoly(g, [P(0, ROWS, 0), P(COLS, ROWS, 0), P(COLS, ROWS, -6), P(0, ROWS, -6)], '#121215');
+  fillPoly(g, [P(COLS, 0, 0), P(COLS, ROWS, 0), P(COLS, ROWS, -6), P(COLS, 0, -6)], '#1c1c21');
+  // checker floor (laundromat)
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const dark = (x + y) % 2 === 1;
+    fillPoly(g, [P(x, y), P(x + 1, y), P(x + 1, y + 1), P(x, y + 1)], dark ? '#1d1d21' : '#ebe5d9');
+  }
+  // soft wall shadow on floor
+  for (let t = 0; t < COLS; t += 1) { const [a, b] = P(t, 0); px(g, a, b, 'rgba(0,0,0,.08)'); }
+  // logo on right wall
+  let [lx, ly] = P(4.25, 0, 72);
+  drawText(g, BRAND, lx + 1, ly + 1, '#0b0b0d', 2, 1);
+  drawText(g, BRAND, lx, ly, '#f2f0eb', 2, 1);
+  [lx, ly] = P(4.3, 0, 56);
+  drawText(g, 'LAVANDERIA · 24H', lx, ly, '#c9b99a', 1, 1);
+  // little bubbles painted on the right wall
+  [[2.2, 64], [2.9, 70], [3.5, 61]].forEach(([t, z], i) => {
+    const [bx, by] = P(t, 0, z); const r = 2 + (i % 2);
+    for (let a = 0; a < 16; a++) { const an = a / 16 * Math.PI * 2; px(g, bx + Math.round(Math.cos(an) * r), by + Math.round(Math.sin(an) * r) + Math.floor(Math.cos(an) * r / 2), IRI[i]); }
+  });
+  return c;
+}
+
+/* ---------------- furniture ---------------- */
+const ITEMS = [];
+function item(o) { o.nf = o.nf || 1; ITEMS.push(o); return o; }
+const BLACK = ['#2f2f35', '#1b1b1f', '#121215', '#050506'];
+
+function porthole(g, cx, cy, status, f) {
+  const R = 7, r = 5;
+  for (let u = -R; u <= R; u++) for (let v = -R; v <= R; v++) {
+    const d2 = u * u + v * v; if (d2 > R * R + 2) continue;
+    const X = cx + u, Y = cy + v + Math.floor(u / 2);
+    let col;
+    if (d2 > (r + 0.6) * (r + 0.6)) col = (u + v < -4) ? '#62626c' : '#3a3a42';
+    else if (status === 'available') {
+      const ang = Math.atan2(v, u) + f * Math.PI / 4;
+      const sec = Math.floor((((ang % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 2));
+      col = ['#1a1a1e', '#e8e0d0', '#b9a3f5', '#9be7ff'][sec];
+      if (d2 <= 2) col = '#d7eaf4';
+    } else if (status === 'coming') col = (v > 1) ? '#7fb3c9' : '#1e2a33';
+    else col = '#141417';
+    px(g, X, Y, col);
+  }
+  px(g, cx - 2, cy - 3 - 1, 'rgba(255,255,255,.75)', 2, 1);
+  if (status === 'coming') { // water + bubbles
+    [[-2, 2 - (f % 2)], [1, 1 + (f % 2)], [3, 3]].forEach(([u, v]) => px(g, cx + u, cy + v + Math.floor(u / 2), '#d7f3ff'));
+  }
+  if (status === 'locked') { // padlock
+    px(g, cx - 2, cy - 5, '#ffd36b', 1, 3); px(g, cx + 2, cy - 5, '#ffd36b', 1, 3); px(g, cx - 1, cy - 6, '#ffd36b', 3, 1);
+    px(g, cx - 3, cy - 2, '#ffd36b', 7, 5); px(g, cx - 3, cy + 2, '#c9993a', 7, 1); px(g, cx, cy - 1, '#141417', 1, 2);
+  }
+}
+function drawWasher(g, tx, drop, f) {
+  const x = tx + 0.08, y = 0.08, w = 0.84, d = 0.84, h = 28;
+  const shake = drop.status === 'available' && f % 2 ? 1 : 0;
+  g.save(); g.translate(0, -shake);
+  isoBox(g, x, y, 0, w, d, h, '#f7f5f0', '#e3dfd5', '#c6c1b5', '#26262b');
+  yFace(g, x + 0.04, x + w - 0.04, y + d, 21, 26, '#2e2e34');
+  let [sx, sy] = P(x + 0.1, y + d, 25.5);
+  drawText(g, drop.n, sx, sy, '#f2f0eb', 1, 1);
+  const led = { available: '#8ff0a4', coming: '#ffd36b', locked: '#ff6b6b', unlocked: '#9be7ff' }[drop.status];
+  [sx, sy] = P(x + w - 0.16, y + d, 24);
+  px(g, sx, sy, (f % 2 || drop.status === 'available') ? led : shade(led, -0.5), 2, 1);
+  const [cx, cy] = P(x + w / 2, y + d, 11);
+  porthole(g, Math.round(cx), Math.round(cy), drop.status === 'unlocked' ? 'coming' : drop.status, f);
+  if (drop.status === 'coming') { // caution tape
+    for (let u = 0; u < 15; u++) { const [tx2, ty2] = P(x + 0.02 + u / 16.5, y + d, 4); px(g, tx2, ty2, (Math.floor(u / 2) % 2) ? '#141417' : '#ffd36b', 1, 3); }
+  }
+  // detergent on top
+  if (drop.n === '01') isoBox(g, x + 0.5, y + 0.15, h, 0.22, 0.2, 6, '#9be7ff', '#6fc4e0', '#58a9c5', '#1d3b47');
+  g.restore();
+}
+function addWasher(tx, drop) {
+  item({ id: 'washer' + drop.n, label: 'LAVADORA ' + drop.n + ' · ' + (drop.status === 'locked' ? '???' : drop.name),
+    box: [tx + 0.08, 0.08, tx + 0.92, 0.92], blocks: [[tx, 0]], use: [tx, 1], nf: 4, fps: drop.status === 'available' ? 8 : 3,
+    draw: (g, f) => drawWasher(g, tx, drop, f), act: () => openDrop(drop.id), drop });
+}
+
+function buildItems() {
+  ITEMS.length = 0;
+  // wall: door
+  item({ id: 'door', wall: true, label: 'SALIDA · VOLVER A LA WEB', box: [0, 6.9, 0.02, 8.4], blocks: [], use: [0, 7],
+    draw: g => {
+      fillPoly(g, [P(0.02, 8.35, 0), P(0.02, 6.95, 0), P(0.02, 6.95, 47), P(0.02, 8.35, 47)], '#e8e0d0');
+      fillPoly(g, [P(0.02, 8.2, 0), P(0.02, 7.1, 0), P(0.02, 7.1, 44), P(0.02, 8.2, 44)], '#0a0a0c');
+      for (let z = 6; z < 44; z += 9) L3(g, P(0.02, 8.2, z), P(0.02, 7.1, z), '#141418');
+      const [sx, sy] = P(0.02, 8.2, 55);
+      fillPoly(g, [P(0.02, 8.25, 49), P(0.02, 6.95, 49), P(0.02, 6.95, 56), P(0.02, 8.25, 56)], '#0e2416');
+      drawText(g, 'SALIDA', sx + 1, sy + 1, '#8ff0a4', 1, -1);
+    }, act: () => openPanel('SALIDA', `<p>¿Sales de la lavandería?</p><div class="row"><a class="pbtn" href="../index.html">VOLVER A LA WEB</a><button class="pbtn ghost" data-act="close">ME QUEDO</button></div>`) });
+  // wall: archive board
+  item({ id: 'board', wall: true, label: 'ARCHIVO · TRABAJOS', box: [0, 4, 0.02, 6], blocks: [], use: [1, 5],
+    draw: g => {
+      fillPoly(g, [P(0.02, 6.05, 27), P(0.02, 3.95, 27), P(0.02, 3.95, 59), P(0.02, 6.05, 59)], '#3a2a1c');
+      fillPoly(g, [P(0.02, 5.95, 29), P(0.02, 4.05, 29), P(0.02, 4.05, 57), P(0.02, 5.95, 57)], '#9c7148');
+      const pol = [[5.75, 53, '#9be7ff'], [5.2, 50, '#ffb3d9'], [4.6, 54, '#1a1a1e'], [5.55, 41, '#c9a7ff'], [4.95, 39, '#e8e0d0'], [4.4, 42, '#8ff0a4']];
+      pol.forEach(([t, z, c]) => {
+        fillPoly(g, [P(0.02, t, z - 10), P(0.02, t - 0.42, z - 10), P(0.02, t - 0.42, z), P(0.02, t, z)], '#f2f0eb');
+        fillPoly(g, [P(0.02, t - 0.06, z - 7), P(0.02, t - 0.36, z - 7), P(0.02, t - 0.36, z - 1), P(0.02, t - 0.06, z - 1)], c);
+        const [pxx, pyy] = P(0.02, t - 0.21, z); px(g, pxx, pyy - 1, '#ff6b6b');
+      });
+      const [sx, sy] = P(0.02, 5.85, 66); drawText(g, 'ARCHIVO', sx, sy, '#e8e0d0', 1, -1);
+    }, act: () => openArchive() });
+  // wall: neon (decor, animated)
+  item({ id: 'neon', wall: true, box: [0, 1.4, 0.02, 3.4], blocks: [], nf: 2, fps: 1.4,
+    draw: (g, f) => { const [sx, sy] = P(0.02, 3.3, 72); const col = f ? '#9be7ff' : '#c9f3ff';
+      drawText(g, 'ABIERTO', sx + 1, sy + 1, f ? '#1b4a59' : '#2c6577', 1, -1); drawText(g, 'ABIERTO', sx, sy, col, 1, -1); } });
+  // plant (corner)
+  item({ id: 'plant', box: [0.2, 0.2, 0.8, 0.8], blocks: [[0, 0]],
+    draw: g => {
+      isoBox(g, 0.28, 0.28, 0, 0.44, 0.44, 10, '#3a3a40', '#232327', '#1a1a1e', '#050506');
+      const [cx, cy] = P(0.5, 0.5, 22);
+      const leaves = [[0, -10, 4, 3], [-5, -6, 5, 3], [5, -6, 5, 3], [-3, -1, 6, 3], [4, 0, 5, 3], [0, -4, 4, 6], [-6, 2, 4, 2], [6, 3, 4, 2]];
+      leaves.forEach(([dx, dy, w, h], i) => { px(g, cx + dx - w / 2, cy + dy, i % 2 ? '#3f8f5a' : '#57b878', w, h); px(g, cx + dx - w / 2, cy + dy, '#1d4a2c', w, 1); });
+      px(g, cx - 1, cy - 4, '#2c6b40', 2, 14);
+    } });
+  // washers = drops
+  DROPS.filter(d => !d.hidden).forEach((d, i) => addWasher(1 + i, d));
+  // vestidor booth
+  item({ id: 'booth', label: 'VESTIDOR · VISTE A POMPA', box: [0.05, 0.95, 0.95, 2.95], blocks: [[0, 1], [0, 2]], use: [1, 2],
+    draw: g => {
+      isoBox(g, 0.05, 0.95, 0, 0.9, 2, 56, '#3a3a42', '#202025', '#18181c', '#050506');
+      xFace(g, 0.95, 1.12, 2.8, 2, 45, '#7a64c4');
+      for (let t = 1.12; t < 2.8; t += 0.08) { const odd = Math.round((t - 1.12) / 0.08) % 2; L3(g, P(0.95, t, 2), P(0.95, t, 45), odd ? '#9a85e0' : '#6a55b2'); }
+      L3(g, P(0.95, 1.1, 46), P(0.95, 2.82, 46), '#b0b0b8');
+      const [sx, sy] = P(0.95, 2.86, 53.5); drawText(g, 'VESTIDOR', sx, sy, '#e8e0d0', 1, -1);
+      yFace(g, 0.12, 0.88, 2.95, 30, 48, '#d9ecff'); // mirror on the side
+      L3(g, P(0.3, 2.95, 44), P(0.42, 2.95, 40), '#ffffff');
+    }, act: () => { hidePompa(700); setTimeout(() => openWardrobe(), 450); } });
+  // counter + register
+  item({ id: 'counter', label: 'MOSTRADOR · HABLA CON DANIEL', box: [6, 2.1, 8.95, 2.9], blocks: [[6, 2], [7, 2], [8, 2]], use: [7, 3],
+    draw: g => {
+      isoBox(g, 6, 2.1, 0, 2.95, 0.8, 18, '#34343a', '#1a1a1e', '#111114', '#050506');
+      [[6.4, 2.4], [6.9, 2.6], [7.4, 2.3], [7.9, 2.7], [8.5, 2.45]].forEach(([a, b]) => { const [vx, vy] = P(a, b, 18); px(g, vx, vy, '#5a5a62', 3, 1); });
+      const [sx, sy] = P(6.35, 2.9, 12); drawText(g, BRAND, sx, sy, '#e8e0d0', 1, 1);
+      isoBox(g, 8.1, 2.25, 18, 0.55, 0.45, 7, '#5c5c64', '#3a3a40', '#2b2b30', '#050506');
+      const [rx, ry] = P(8.15, 2.7, 23); px(g, rx + 1, ry + 1, '#8ff0a4', 4, 1);
+      isoBox(g, 6.35, 2.35, 18, 0.24, 0.24, 8, '#ffd9e9', '#efa8c6', '#d98aab', '#4a2238');
+      const [nx, ny] = P(6.47, 2.47, 30); px(g, nx - 1, ny, '#4a2238', 3, 1); px(g, nx, ny + 1, '#4a2238', 1, 3);
+    }, act: () => talkDaniel() });
+  // clothes rack
+  item({ id: 'rack', label: 'ROPA · VER PRODUCTOS', box: [1.85, 5.25, 4.95, 5.75], blocks: [[2, 5], [3, 5], [4, 5]], use: [3, 6],
+    draw: g => {
+      isoBox(g, 1.85, 5.28, 0, 0.4, 0.44, 2, ...BLACK);
+      isoBox(g, 4.55, 5.28, 0, 0.4, 0.44, 2, ...BLACK);
+      isoBox(g, 1.98, 5.42, 2, 0.14, 0.16, 34, ...BLACK);
+      isoBox(g, 4.68, 5.42, 2, 0.14, 0.16, 34, ...BLACK);
+      isoBox(g, 2.0, 5.45, 32, 2.82, 0.1, 2, '#77777f', '#4a4a52', '#36363c', '#050506');
+      const cols = [['#1a1a1e', '#e8e0d0'], ['#e8e0d0', '#1a1a1e'], ['#b9a3f5', '#1a1a1e'], ['#1a1a1e', '#9be7ff'], ['#f2f0eb', '#1a1a1e']];
+      cols.forEach(([b, w], i) => {
+        const gx = 2.35 + i * 0.52; const [hx, hy] = P(gx, 5.5, 33);
+        px(g, hx, hy - 2, '#9a9aa2', 1, 2);
+        blit(g, ['...o...', '..o.o..', '.ooooo.'], hx - 3, hy, { o: '#9a9aa2' });
+        blit(g, ['.ooo.ooo.', 'obbbobbbo', 'obbbbbbbo', 'oobbwbboo', '..obbbo..', '..obbbo..', '..obbbo..', '..obbbo..', '..ooooo..'],
+          hx - 4, hy + 2, { o: '#050506', b, w }, 1);
+      });
+      isoBox(g, 2.85, 5.45, 36, 1.1, 0.08, 9, '#121215', '#0b0b0d', '#08080a', '#e8e0d0');
+      const [sx, sy] = P(3.0, 5.53, 43.5); drawText(g, 'ROPA', sx, sy, '#f2f0eb', 1, 1);
+    }, act: () => openCatalog() });
+  // bench with laundry basket
+  item({ id: 'bench', label: 'BANCO DE ESPERA', box: [7.95, 5.0, 8.9, 7.9], blocks: [[8, 5], [8, 6], [8, 7]], use: [7, 6],
+    draw: g => {
+      [[8.05, 5.1], [8.65, 5.1], [8.05, 7.6], [8.65, 7.6]].forEach(([a, b]) => isoBox(g, a, b, 0, 0.12, 0.12, 8, ...BLACK));
+      isoBox(g, 7.95, 5.0, 8, 0.9, 2.9, 3, '#c9b99a', '#a8987a', '#8c7d62', '#2a2118');
+      isoBox(g, 8.15, 6.75, 11, 0.6, 0.65, 7, '#f2f0eb', '#d9d2c3', '#c2baa9', '#3a3328');
+      const [bx, by] = P(8.45, 7.05, 18);
+      px(g, bx - 5, by - 2, '#b9a3f5', 4, 2); px(g, bx - 1, by - 3, '#1a1a1e', 4, 3); px(g, bx + 3, by - 2, '#9be7ff', 3, 2);
+    }, act: () => say(pompa, ['Esperando a que acabe el centrifugado…', 'Huele a suavizante.', 'Un día me pruebo la 03.'][Math.floor(Math.random() * 3)]) });
+}
+
+/* ---------------- characters ---------------- */
+const outfit = Object.assign({ skin: 'iris', top: 'none', head: 'none', face: 'none' }, store.get('outfit', {}));
+const pompa = { id: 'pompa', name: () => nick, x: 0.5, y: 7.5, path: [], facing: 1, frame: 0, ft: 0, speed: 3.2, hidden: 0, onArrive: null };
+const daniel = { id: 'daniel', name: () => 'DANIEL', x: 7.5, y: 1.05, facing: -1, frame: 0, ft: 0, path: [], static: true };
+const CHARS = [pompa, daniel];
+let nick = store.get('nick', 'INVITADO');
+
+const blocked = new Set();
+function rebuildBlocked() {
+  blocked.clear();
+  ITEMS.forEach(it => (it.blocks || []).forEach(([x, y]) => blocked.add(x + ',' + y)));
+  for (let x = 5; x < 9; x++) for (let y = 0; y < 2; y++) blocked.add(x + ',' + y); // detrás del mostrador
+}
+const free = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && !blocked.has(x + ',' + y);
+function findPath(sx, sy, tx, ty) {
+  if (!free(tx, ty)) return null;
+  const key = (x, y) => x + ',' + y, prev = new Map([[key(sx, sy), null]]), dist = new Map([[key(sx, sy), 0]]);
+  const open = [[sx, sy]];
+  while (open.length) {
+    open.sort((a, b) => dist.get(key(...a)) - dist.get(key(...b)));
+    const [x, y] = open.shift();
+    if (x === tx && y === ty) break;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      if (!dx && !dy) continue;
+      const nx = x + dx, ny = y + dy;
+      if (!free(nx, ny)) continue;
+      if (dx && dy && (!free(x + dx, y) || !free(x, y + dy))) continue;
+      const nd = dist.get(key(x, y)) + (dx && dy ? 1.41 : 1);
+      if (!dist.has(key(nx, ny)) || nd < dist.get(key(nx, ny))) { dist.set(key(nx, ny), nd); prev.set(key(nx, ny), [x, y]); open.push([nx, ny]); }
+    }
+  }
+  if (!prev.has(key(tx, ty))) return null;
+  const path = []; let cur = [tx, ty];
+  while (cur && !(cur[0] === sx && cur[1] === sy)) { path.unshift([cur[0] + 0.5, cur[1] + 0.5]); cur = prev.get(key(...cur)); }
+  return path;
+}
+function walkTo(tx, ty, onArrive) {
+  const c = pompa;
+  const start = c.path.length ? c.path[0] : [c.x, c.y];
+  const sx = Math.floor(start[0]), sy = Math.floor(start[1]);
+  const route = findPath(sx, sy, tx, ty);
+  if (!route) return false;
+  c.path = c.path.length ? [c.path[0], ...route] : route;
+  c.onArrive = onArrive || null;
+  if (!c.path.length && onArrive) { c.onArrive = null; onArrive(); }
+  return true;
+}
+function faceToward(c, wx, wy) { const sdx = (wx - c.x) - (wy - c.y); if (Math.abs(sdx) > 0.01) c.facing = sdx > 0 ? 1 : -1; }
+function goUse(it) {
+  const [ux, uy] = it.use;
+  const done = () => { faceToward(pompa, (it.box[0] + it.box[2]) / 2, (it.box[1] + it.box[3]) / 2); it.act(); };
+  if (Math.floor(pompa.x) === ux && Math.floor(pompa.y) === uy && !pompa.path.length) done();
+  else if (!walkTo(ux, uy, done)) it.act();
+}
+function hidePompa(ms) { pompa.hidden = performance.now() + ms; burst(pompa, 8); }
+
+/* ---------------- speech bubbles ---------------- */
+const saysEl = $('#says');
+const bubbles = [];
+function say(c, text, ms = 5200) {
+  const el = document.createElement('div');
+  el.className = 'say';
+  el.innerHTML = `<b>${esc(c.name())}:</b>${esc(text)}`;
+  saysEl.appendChild(el);
+  const b = { c, el, until: performance.now() + ms };
+  bubbles.push(b);
+  while (bubbles.filter(x => x.c === c).length > 3) { const old = bubbles.find(x => x.c === c); old.el.remove(); bubbles.splice(bubbles.indexOf(old), 1); }
+  return b;
+}
+
+/* ---------------- particles (soap bubbles) ---------------- */
+const parts = [];
+function spawnBubble(x, y, r) { parts.push({ x, y, r: r || 1 + Math.floor(Math.random() * 3), t: 0, life: 2.5 + Math.random() * 2.5, ph: Math.random() * 6, col: IRI[Math.floor(Math.random() * 3)], vy: 6 + Math.random() * 8 }); }
+function burst(c, n) { const [sx, sy] = P(c.x, c.y); for (let i = 0; i < n; i++) spawnBubble(sx - 6 + Math.random() * 12, sy - 10 - Math.random() * 10); }
+function drawBubble(g, b) {
+  const x = Math.round(b.x + Math.sin(b.t * 2 + b.ph) * 2), y = Math.round(b.y);
+  if (b.t > b.life - 0.15) { px(g, x - 2, y, b.col); px(g, x + 2, y, b.col); px(g, x, y - 2, b.col); px(g, x, y + 2, b.col); return; }
+  const r = b.r;
+  if (r === 1) { px(g, x - 1, y, b.col); px(g, x + 1, y, b.col); px(g, x, y - 1, b.col); px(g, x, y + 1, b.col); return; }
+  for (let a = 0; a < 12 + r * 4; a++) { const an = a / (12 + r * 4) * Math.PI * 2; px(g, x + Math.round(Math.cos(an) * r), y + Math.round(Math.sin(an) * r), b.col); }
+  px(g, x - Math.ceil(r / 2), y - Math.ceil(r / 2), '#ffffff');
+}
+
+/* ---------------- render ---------------- */
+const room = $('#room'), g = room.getContext('2d');
+g.imageSmoothingEnabled = false;
+let BG;
+let hoverTile = null, hoverItem = null;
+let drawOrder = [];
+
+function prerender() {
+  ITEMS.forEach(it => {
+    it.frames = [];
+    for (let f = 0; f < it.nf; f++) { const [c, cg] = mk(LW, LH); it.draw(cg, f); it.frames.push(c); }
+    const data = it.frames[0].getContext('2d').getImageData(0, 0, LW, LH).data;
+    it.alpha = new Uint8Array(LW * LH);
+    let x0 = LW, y0 = LH, x1 = 0, y1 = 0;
+    for (let i = 0; i < LW * LH; i++) if (data[i * 4 + 3] > 0) { it.alpha[i] = 1; const x = i % LW, y = (i / LW) | 0; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    it.bb = [x0, y0, x1 + 1, y1 + 1];
+    it.cur = 0;
+  });
+}
+function charBB(c) { const [sx, sy] = P(c.x, c.y); return [sx - 11, sy - 28, sx + 11, sy + 3]; }
+const overlap = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+function computeOrder() {
+  const furn = ITEMS.filter(i => !i.wall).sort((a, b) => (a.box[0] + a.box[2] + a.box[1] + a.box[3]) - (b.box[0] + b.box[2] + b.box[1] + b.box[3]));
+  const chars = CHARS.slice().sort((a, b) => (a.x + a.y) - (b.x + b.y));
+  const slots = new Map();
+  chars.forEach(c => {
+    const cb = charBB(c);
+    let idx = furn.length;
+    furn.forEach((f, i) => { const inFront = c.x >= f.box[2] || c.y >= f.box[3]; if (!inFront && overlap(cb, f.bb)) idx = Math.min(idx, i); });
+    if (!slots.has(idx)) slots.set(idx, []);
+    slots.get(idx).push(c);
+  });
+  const out = ITEMS.filter(i => i.wall).map(i => ({ item: i }));
+  furn.forEach((f, i) => { (slots.get(i) || []).forEach(c => out.push({ char: c })); out.push({ item: f }); });
+  (slots.get(furn.length) || []).forEach(c => out.push({ char: c }));
+  drawOrder = out;
+}
+function drawChar(c, now) {
+  if (c === pompa && c.hidden > now) return;
+  const [sx, sy] = P(c.x, c.y);
+  g.fillStyle = 'rgba(0,0,0,.22)';
+  g.fillRect(Math.round(sx) - 3, Math.round(sy) - 1, 6, 1); g.fillRect(Math.round(sx) - 5, Math.round(sy), 10, 2); g.fillRect(Math.round(sx) - 3, Math.round(sy) + 2, 6, 1);
+  if (c === pompa) {
+    const moving = c.path.length > 0;
+    const bob = moving ? 0 : (Math.floor(now / 500) % 2 ? -1 : 0);
+    const spr = pompaSprite(outfit, moving ? 1 + (c.frame % 2) : 0, c.facing);
+    g.drawImage(spr, Math.round(sx - 11), Math.round(sy - 26 + bob));
+  } else {
+    const fr = (now % 4200) < 160 ? 3 : (c.wave > now ? 1 + Math.floor(now / 180) % 2 : 0);
+    const spr = danielSprite(fr);
+    g.drawImage(spr, Math.round(sx - 10), Math.round(sy - 25 + (Math.floor(now / 700) % 2 ? -1 : 0)));
+  }
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  // movement
+  const c = pompa;
+  if (c.path.length) {
+    const [tx, ty] = c.path[0];
+    const dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy), step = c.speed * dt;
+    faceToward(c, tx, ty);
+    if (d <= step) { c.x = tx; c.y = ty; c.path.shift(); if (!c.path.length && c.onArrive) { const f = c.onArrive; c.onArrive = null; f(); } }
+    else { c.x += dx / d * step; c.y += dy / d * step; }
+    c.ft += dt; if (c.ft > 0.13) { c.ft = 0; c.frame++; if (!reduceMotion && Math.random() < 0.25) burst(c, 1); }
+  }
+  // animate furniture
+  ITEMS.forEach(it => { if (it.nf > 1) it.cur = Math.floor(now / 1000 * (it.fps || 4)) % it.nf; });
+  // ambient bubbles from washer 01
+  if (!reduceMotion && Math.random() < dt * 0.9) { const [bx, by] = P(1.5, 0.92, 16); spawnBubble(bx + (Math.random() * 8 - 4), by); }
+  if (!reduceMotion && Math.random() < dt * 0.5) { const [bx, by] = P(1 + Math.random() * 7, 1 + Math.random() * 7); spawnBubble(bx, by - 4, 1); }
+  for (let i = parts.length - 1; i >= 0; i--) { const b = parts[i]; b.t += dt; b.y -= b.vy * dt; if (b.t > b.life) parts.splice(i, 1); }
+
+  if (cam.w > innerWidth && !down && (c.path.length || cam.follow)) {
+    const [sx] = P(c.x, c.y);
+    const want = innerWidth / 2 - sx * cam.s;
+    cam.x += (want - cam.x) * Math.min(1, dt * 4); clampCam();
+    if (Math.abs(want - cam.x) < 2) cam.follow = false;
+  }
+  computeOrder();
+  g.clearRect(0, 0, LW, LH);
+  g.drawImage(BG, 0, 0);
+  if (hoverTile && !hoverItem) {
+    const [x, y] = hoverTile;
+    strokePoly(g, [P(x, y), P(x + 1, y), P(x + 1, y + 1), P(x, y + 1)], free(x, y) ? '#ffffff' : '#ff7a7a');
+  }
+  for (const o of drawOrder) {
+    if (o.item) {
+      g.drawImage(o.item.frames[o.item.cur], 0, 0);
+    } else drawChar(o.char, now);
+  }
+  if (hoverItem) { // outline hint
+    const bb = hoverItem.bb; g.fillStyle = 'rgba(255,255,255,.9)';
+    g.fillRect(bb[0] - 2, bb[1] - 2, 3, 1); g.fillRect(bb[0] - 2, bb[1] - 2, 1, 3);
+    g.fillRect(bb[2] - 1, bb[1] - 2, 3, 1); g.fillRect(bb[2] + 1, bb[1] - 2, 1, 3);
+    g.fillRect(bb[0] - 2, bb[3] + 1, 3, 1); g.fillRect(bb[0] - 2, bb[3] - 1, 1, 3);
+    g.fillRect(bb[2] - 1, bb[3] + 1, 3, 1); g.fillRect(bb[2] + 1, bb[3] - 1, 1, 3);
+  }
+  parts.forEach(b => drawBubble(g, b));
+  // speech bubbles follow their speaker
+  const stack = new Map();
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i];
+    if (now > b.until) { b.el.classList.add('fade'); if (now > b.until + 450) { b.el.remove(); bubbles.splice(i, 1); } }
+  }
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i], n = stack.get(b.c) || 0;
+    const [sx, sy] = P(b.c.x, b.c.y);
+    const off = n ? bubbles.filter((x, j) => j > i && x.c === b.c).reduce((a, x) => a + x.el.offsetHeight + 8, 0) : 0;
+    const half = b.el.offsetWidth / 2 + 6;
+    b.el.style.left = Math.max(half, Math.min(innerWidth - half, cam.x + sx * cam.s)) + 'px';
+    b.el.style.top = (cam.y + (sy - 30) * cam.s - 8 - off) + 'px';
+    stack.set(b.c, n + 1);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- camera + input ---------------- */
+const stage = $('#stage');
+const cam = { s: 2, x: 0, y: 0, w: 0, h: 0 };
+function layout() {
+  const W = innerWidth, H = innerHeight;
+  const s = Math.max(2, Math.floor(Math.min(W / LW, (H - 40) / LH)));
+  cam.s = s; cam.w = LW * s; cam.h = LH * s;
+  room.style.width = cam.w + 'px'; room.style.height = cam.h + 'px';
+  centerCam();
+}
+function clampCam() {
+  const W = innerWidth, H = innerHeight;
+  cam.x = cam.w <= W ? Math.round((W - cam.w) / 2) : Math.min(0, Math.max(W - cam.w, cam.x));
+  const top = 0, avail = H - 60;
+  cam.y = cam.h <= avail ? Math.round(top + (avail - cam.h) / 2) : Math.min(60, Math.max(H - 120 - cam.h, cam.y));
+  room.style.transform = `translate(${cam.x}px, ${cam.y}px)`;
+}
+function centerCam() {
+  const [sx, sy] = P(4.5, 3.5, 10);
+  cam.x = Math.round(innerWidth / 2 - sx * cam.s); cam.y = Math.round((innerHeight - 60) / 2 - sy * cam.s);
+  clampCam();
+}
+function toLogical(e) { return [(e.clientX - cam.x) / cam.s, (e.clientY - cam.y) / cam.s]; }
+function tileAt(lx, ly) {
+  const a = (lx - OX) / 16, b = (ly - OY) / 8;
+  const x = Math.floor((a + b) / 2), y = Math.floor((b - a) / 2);
+  return (x >= 0 && y >= 0 && x < COLS && y < ROWS) ? [x, y] : null;
+}
+function hitTest(lx, ly) {
+  const X = Math.floor(lx), Y = Math.floor(ly);
+  if (X < 0 || Y < 0 || X >= LW || Y >= LH) return null;
+  const db = charBB(daniel); if (lx >= db[0] && lx < db[2] && ly >= db[1] + 2 && ly < db[3] - 6) return { npc: daniel };
+  // pass 0: exact pixel; pass 1: forgiving margin (thin furniture, fingers)
+  for (const R of [0, 3]) for (let i = drawOrder.length - 1; i >= 0; i--) {
+    const it = drawOrder[i].item;
+    if (!it || !it.act) continue;
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+      const xx = X + dx, yy = Y + dy;
+      if (xx >= 0 && yy >= 0 && xx < LW && yy < LH && it.alpha[yy * LW + xx]) return { item: it };
+    }
+  }
+  return null;
+}
+let down = null;
+stage.addEventListener('pointerdown', e => {
+  down = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, drag: false, id: e.pointerId };
+});
+stage.addEventListener('pointermove', e => {
+  if (down && e.pointerId === down.id) {
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (!down.drag && Math.hypot(dx, dy) > 7) { down.drag = true; stage.classList.add('grab'); try { stage.setPointerCapture(e.pointerId); } catch (_) {} }
+    if (down.drag) { cam.x = down.cx + dx; cam.y = down.cy + dy; clampCam(); }
+    return;
+  }
+  if (e.pointerType !== 'mouse') return;
+  const [lx, ly] = toLogical(e);
+  const h = hitTest(lx, ly);
+  hoverItem = h && h.item ? h.item : null;
+  hoverTile = h ? null : tileAt(lx, ly);
+  const tip = $('#tip');
+  const label = h ? (h.item ? h.item.label : 'DANIEL · DEPENDIENTE') : null;
+  stage.classList.toggle('hand', !!h);
+  if (label) { tip.textContent = label; tip.style.display = 'block'; tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 14) + 'px'; }
+  else tip.style.display = 'none';
+});
+stage.addEventListener('pointerleave', () => { hoverTile = null; hoverItem = null; $('#tip').style.display = 'none'; });
+stage.addEventListener('pointerup', e => {
+  if (!down || e.pointerId !== down.id) return;
+  const wasDrag = down.drag; down = null; stage.classList.remove('grab');
+  if (wasDrag || !$('#panel').hidden) return;
+  const [lx, ly] = toLogical(e);
+  const h = hitTest(lx, ly);
+  if (h && h.item) return goUse(h.item);
+  if (h && h.npc) return goUse(ITEMS.find(i => i.id === 'counter'));
+  const t = tileAt(lx, ly);
+  if (t && free(...t)) walkTo(t[0], t[1]);
+});
+stage.addEventListener('pointercancel', () => { down = null; stage.classList.remove('grab'); });
+addEventListener('resize', layout);
+
+/* ---------------- Daniel (demo sin IA) ---------------- */
+function dropOpens() { const d = DROPS.find(x => x.status === 'coming'); return d ? new Date(d.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) : 'pronto'; }
+function danielReply(q) {
+  const t = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/talla|size|mido|altura|cm\b/.test(t)) return 'El corte es boxy: si dudas entre dos tallas, coge la pequeña. Dime tu altura y te oriento.';
+  if (/envi|shipping|llega|tarda/.test(t)) return 'Envíos a península en 48–72 h (texto provisional, lo confirmamos antes de abrir).';
+  if (/devol|cambio|return/.test(t)) return 'Tienes 14 días para devolver o cambiar. Lo tienes en DEVOLUC., a la derecha.';
+  if (/stock|queda|agotad/.test(t)) {
+    const low = PRODUCTS.flatMap(p => Object.entries(p.sizes).filter(([, n]) => n > 0 && n <= 3).map(([s, n]) => `${p.name} ${s} (${n})`));
+    return low.length ? 'Quedan pocas: ' + low.join(', ') + '. Agotado es agotado.' : 'Ahora mismo hay stock de casi todo.';
+  }
+  if (/precio|cuanto|cuesta|€|euro/.test(t)) return PRODUCTS.map(p => `${p.name.split(' ')[0]} ${p.price} €`).join(' · ') + '. Precios de ejemplo de momento.';
+  if (/llave|key|codigo|code/.test(t)) return 'Las llaves se reparten antes de cada drop. Si tienes una, pruébala en la lavadora 03.';
+  if (/drop|lavadora|cuando|nuevo|next/.test(t)) return `La 01 está girando: FIRST SIGNAL ya disponible. La 02 se abre el ${dropOpens()}. La 03, solo con llave.`;
+  if (/hola|buenas|hey|ey\b|que tal|hi\b/.test(t)) return '¡Buenas! Soy Daniel, el de la lavandería. ¿Tallas, drops o envíos?';
+  if (/pompa|quien eres|eres/.test(t)) return 'Yo soy una pastilla de jabón con contrato fijo. Tú eres Pompa: no explotes.';
+  return 'Aún soy un Daniel de prueba: sé de tallas, drops, envíos y precios. La IA de verdad llega en la Fase 4.';
+}
+function talkDaniel() {
+  daniel.wave = performance.now() + 1400;
+  say(daniel, ['¡Buenas! ¿Te ayudo con tallas, drops o envíos?', 'Unidades limitadas. Agotado es agotado.', 'La lavadora 01 está girando. Echa un ojo a la ropa.'][Math.floor(Math.random() * 3)]);
+  setTimeout(() => $('#chatIn').focus({ preventScroll: true }), 50);
+}
+$('#chat').addEventListener('submit', e => {
+  e.preventDefault();
+  const v = $('#chatIn').value.trim(); if (!v) return;
+  $('#chatIn').value = '';
+  say(pompa, v);
+  setTimeout(() => { daniel.wave = performance.now() + 1200; say(daniel, danielReply(v), 7000); }, 700);
+});
+
+/* ---------------- panels ---------------- */
+const panel = $('#panel'), pBody = $('#pBody'), pTitle = $('#pTitle');
+let panelState = {};
+let lastFocus = null;
+function openPanel(title, html, state = {}) {
+  if (panel.hidden) lastFocus = document.activeElement;
+  pTitle.textContent = title; pBody.innerHTML = html; panel.hidden = false; panelState = state;
+  pBody.scrollTop = 0;
+  const f = panel.querySelector('header button'); f && f.focus({ preventScroll: true });
+}
+function closePanel() { panel.hidden = true; trial = null; clearInterval(countTimer); if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); }
+panel.addEventListener('click', e => { if (e.target === panel) closePanel(); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
+let toastT;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+
+const NOTE_DATA = '<div class="note">Precios y stock de ejemplo. Se conectarán a la base de datos (Fase 2).</div>';
+function stockOf(p) { return Object.values(p.sizes).reduce((a, b) => a + b, 0); }
+function cardHTML(p) {
+  const s = stockOf(p), low = s > 0 && Object.values(p.sizes).some(n => n > 0 && n <= 3);
+  const tag = s === 0 ? '<span class="tag out">AGOTADO</span>' : low ? '<span class="tag low">ÚLTIMAS</span>' : '';
+  return `<button class="card" data-act="product" data-id="${p.id}"><div class="img">${tag}<img src="${artURL[p.id]}" alt=""></div>
+    <div class="meta"><strong>${esc(p.name)}</strong>${euro(p.price)}</div></button>`;
+}
+function openCatalog() {
+  openPanel('PRODUCTOS', `<div class="eyebrow">LAVADORA 01 · FIRST SIGNAL</div>
+    <div class="grid">${PRODUCTS.map(cardHTML).join('')}</div>${NOTE_DATA}`);
+}
+function openProduct(id, size) {
+  const p = PRODUCTS.find(x => x.id === id);
+  const sizes = Object.entries(p.sizes);
+  if (!size) { const first = sizes.find(([, n]) => n > 0); size = first ? first[0] : null; }
+  const n = size ? p.sizes[size] : 0;
+  const stockTxt = !size ? 'AGOTADO EN TODAS LAS TALLAS' : n <= 3 ? `SOLO QUEDAN ${n}` : 'EN STOCK';
+  const cls = !size ? 'out' : n <= 3 ? 'low' : '';
+  openPanel(p.name.toUpperCase(), `<div class="prod">
+      <div class="hang"><img src="${artURL[p.id]}" alt="${esc(p.name)}"></div>
+      <div>
+        <div class="eyebrow">${BRAND} — 01 · FIRST SIGNAL</div>
+        <div class="price">${euro(p.price)}</div>
+        <p>${esc(p.desc)}</p>
+        <div class="eyebrow">TALLA</div>
+        <div class="sizes">${sizes.map(([s, k]) => `<button class="sz ${s === size ? 'on' : ''}" data-act="size" data-id="${p.id}" data-size="${s}" ${k ? '' : 'disabled'}>${s}</button>`).join('')}</div>
+        <div class="stock ${cls}">${stockTxt}</div>
+        <div class="row">
+          <button class="pbtn" data-act="add" data-id="${p.id}" data-size="${size || ''}" ${size ? '' : 'disabled'}>AÑADIR A LA BOLSA</button>
+          ${p.wear ? `<button class="pbtn ghost" data-act="try" data-id="${p.id}">PROBAR EN POMPA</button>` : ''}
+        </div>
+        <p style="margin-top:12px"><button class="pbtn ghost" data-act="catalog">← TODOS LOS PRODUCTOS</button></p>
+      </div></div>${NOTE_DATA}`);
+}
+
+let bag = store.get('bag', []);
+function saveBag() { store.set('bag', bag); const n = bag.reduce((a, b) => a + b.q, 0); $('#bagN').textContent = n ? n : ''; }
+function addToBag(id, size) {
+  const p = PRODUCTS.find(x => x.id === id);
+  const line = bag.find(b => b.id === id && b.size === size);
+  const have = line ? line.q : 0;
+  if (have >= p.sizes[size]) { toast('NO QUEDAN MÁS EN ESA TALLA'); return; }
+  if (line) line.q++; else bag.push({ id, size, q: 1 });
+  saveBag();
+  toast(`${p.name.toUpperCase()} (${size}) A LA BOLSA`);
+  say(daniel, p.sizes[size] - have - 1 <= 1 ? 'Buena elección. Era de las últimas.' : 'Buena elección.');
+}
+function openBag() {
+  if (!bag.length) return openPanel('BOLSA', `<p>Tu bolsa está vacía. La ropa está en el perchero del centro.</p><button class="pbtn" data-act="catalog">VER PRODUCTOS</button>`);
+  const total = bag.reduce((a, b) => a + PRODUCTS.find(p => p.id === b.id).price * b.q, 0);
+  openPanel('BOLSA', bag.map((b, i) => { const p = PRODUCTS.find(x => x.id === b.id); return `<div class="bagline">
+      <img src="${artURL[p.id]}" alt=""><div><strong style="font-family:var(--px);font-size:11px">${esc(p.name)}</strong><br><small>TALLA ${b.size} · ${euro(p.price)}</small></div>
+      <div class="qty"><button data-act="qty" data-i="${i}" data-d="-1" aria-label="Quitar uno">-</button>${b.q}<button data-act="qty" data-i="${i}" data-d="1" aria-label="Añadir uno">+</button></div></div>`; }).join('') +
+    `<div class="total"><span>TOTAL</span><span>${euro(total)}</span></div>
+     <button class="pbtn" data-act="checkout" style="width:100%">PAGAR</button>
+     <div class="note">El pago todavía no está activo: llega con Stripe en la Fase 3. Tu bolsa se guarda en este navegador.</div>`);
+}
+
+function openDrop(id) {
+  const d = DROPS.find(x => x.id === id);
+  if (d.status === 'available') {
+    const items = PRODUCTS.filter(p => p.drop === d.id);
+    return openPanel(`LAVADORA ${d.n}`, `<div class="eyebrow">DROP ${d.n} · DISPONIBLE</div><h3 class="big">${d.name}</h3><p>${esc(d.copy)}</p>
+      <div class="grid">${items.map(cardHTML).join('')}</div>${NOTE_DATA}`);
+  }
+  if (d.status === 'coming') {
+    openPanel(`LAVADORA ${d.n}`, `<div class="eyebrow">DROP ${d.n} · EN EL TAMBOR</div><h3 class="big">${d.name}</h3><p>${esc(d.copy)}</p>
+      <div class="eyebrow">SE ABRE EN</div><div class="count" id="count"></div>
+      <form class="field" data-form="notify"><input type="email" required placeholder="TU EMAIL" aria-label="Email"><button class="pbtn">AVÍSAME</button></form>
+      <div class="note">El aviso por email aún no envía nada: se conecta a la base de datos en la Fase 2.</div>`);
+    tickCount(d); countTimer = setInterval(() => tickCount(d), 1000);
+    return;
+  }
+  openKey(d);
+}
+let countTimer;
+function tickCount(d) {
+  const el = $('#count'); if (!el) return clearInterval(countTimer);
+  let s = Math.max(0, Math.floor((new Date(d.date) - Date.now()) / 1000));
+  const parts = [[Math.floor(s / 86400), 'DÍAS'], [Math.floor(s / 3600) % 24, 'HORAS'], [Math.floor(s / 60) % 60, 'MIN'], [s % 60, 'SEG']];
+  el.innerHTML = parts.map(([v, l]) => `<div><b>${String(v).padStart(2, '0')}</b><span>${l}</span></div>`).join('');
+}
+function openKey(d) {
+  d = d || DROPS.find(x => x.id === 'd03');
+  if (d.status === 'unlocked') return openPanel(`LAVADORA ${d.n}`, `<div class="eyebrow">ACCESO CONCEDIDO</div><h3 class="big">${d.name}</h3>
+    <p>Estás dentro. Cuando el drop salga, la lavadora ${d.n} se abrirá para ti antes que para nadie.</p>`);
+  openPanel('TU LLAVE', `<div class="eyebrow">LAVADORA ${d.n} · CERRADA</div><h3 class="big">${d.name}</h3><p>${esc(d.copy)}</p>
+    <form class="field" data-form="key"><input id="keyIn" placeholder="XXXXX-0000" aria-label="Tu llave" autocomplete="off"><button class="pbtn">ABRIR</button></form>
+    <div class="stock" id="keyMsg"></div>`);
+}
+function useKey(v) {
+  const d = DROPS.find(x => x.id === 'd03');
+  if (DEMO_KEYS.includes(v.trim().toUpperCase())) {
+    d.status = 'unlocked'; store.set('unlocked', true);
+    const it = ITEMS.find(i => i.id === 'washer03'); it.label = 'LAVADORA 03 · ' + d.name; it.frames = null; prerender();
+    burst({ x: 3.5, y: 1 }, 14); say(daniel, 'Esa llave abre. Bienvenido a la 03.');
+    openKey(d);
+  } else { const m = $('#keyMsg'); m.className = 'stock out'; m.textContent = 'ESA LLAVE NO ABRE NADA AQUÍ'; }
+}
+
+let trial = null;
+function openWardrobe() {
+  trial = trial || Object.assign({}, outfit);
+  const opts = (map, slot) => Object.entries(map).map(([k, v]) => `<button class="ch ${trial[slot] === k ? 'on' : ''}" data-act="wear" data-slot="${slot}" data-v="${k}">${v}</button>`).join('');
+  const shopLinks = PRODUCTS.filter(p => p.wear && (trial[p.wear[0]] === p.wear[1])).map(p => `<button class="pbtn ghost" data-act="product" data-id="${p.id}">${esc(p.name)} · ${euro(p.price)} →</button>`).join('');
+  openPanel('VESTIDOR DE POMPA', `<div class="wardrobe">
+      <div class="mirror"><canvas id="mirror" width="22" height="28"></canvas></div>
+      <div>
+        <div class="opt"><div class="eyebrow">PIEL</div><div class="row">${Object.entries(SKINS).map(([k, s]) => `<button class="sw ${trial.skin === k ? 'on' : ''}" style="background:${s.base}" data-act="wear" data-slot="skin" data-v="${k}" aria-label="${s.name}" title="${s.name}"></button>`).join('')}</div></div>
+        <div class="opt"><div class="eyebrow">ARRIBA</div><div class="row">${opts(TOPS, 'top')}</div></div>
+        <div class="opt"><div class="eyebrow">CABEZA</div><div class="row">${opts(HEADS, 'head')}</div></div>
+        <div class="opt"><div class="eyebrow">CARA</div><div class="row">${opts(FACES, 'face')}</div></div>
+        <div class="row"><button class="pbtn" data-act="save-look">GUARDAR LOOK</button><button class="pbtn ghost" data-act="random-look">ALEATORIO</button></div>
+        ${shopLinks ? `<div class="opt" style="margin-top:14px"><div class="eyebrow">LO QUE LLEVA, EN LA TIENDA</div><div class="row">${shopLinks}</div></div>` : ''}
+      </div></div>`);
+  const m = $('#mirror').getContext('2d'); m.imageSmoothingEnabled = false; m.drawImage(pompaSprite(trial, 0, 1), 0, 0);
+}
+function refreshChip() { const c = $('#chipAv').getContext('2d'); c.imageSmoothingEnabled = false; c.clearRect(0, 0, 22, 22); c.drawImage(pompaSprite(outfit, 0, 1), 0, -2); $('#nick').textContent = nick; }
+
+function openArchive(filter = 'all') {
+  const cats = [['all', 'TODO'], ['music', 'MÚSICA'], ['visuals', 'VISUALES'], ['drops', 'DROPS'], ['identity', 'IDENTIDAD']];
+  openPanel('ARCHIVO', `<div class="filters">${cats.map(([k, l]) => `<button class="ch ${filter === k ? 'on' : ''}" data-act="filter" data-v="${k}">${l}</button>`).join('')}</div>
+    <div class="arch">${ARCHIVE.filter(a => filter === 'all' || a.cat === filter).map(a => `<div class="polaroid"><i style="background:repeating-linear-gradient(45deg,${a.c[0]} 0 6px,${a.c[1]} 6px 8px)"></i><b>${a.cat.toUpperCase()}</b><span>${esc(a.t)}</span></div>`).join('')}</div>
+    <div class="note">Imágenes de relleno: se sustituyen por los trabajos reales.</div>`);
+}
+const PAGES = {
+  story: ['HISTORIA', `<div class="eyebrow">${BRAND} — EST. 2026</div><h3 class="big">UNA LAVANDERÍA DE IDEAS</h3>
+    <p>Dani R. construye drops visuales, identidades sonoras y piezas digitales que viven entre la música, la moda y la cultura de internet.</p>
+    <p>Aquí cada lavadora es un drop. Unas giran, otras esperan y alguna solo se abre con llave. La ropa sale limpia; las ideas, no.</p>
+    <p>Pompa es quien te representa dentro. Vístela en el vestidor y habla con Daniel en el mostrador.</p>`],
+  contact: ['CONTACTO', `<p>Para colaboraciones, prensa o dudas con un pedido.</p><p><strong>Email y redes:</strong> pendientes de confirmar.</p>
+    <div class="note">Rellenar con los datos reales de la marca antes de publicar.</div>`],
+  shipping: ['ENVÍOS', `<p>Península: 48–72 h laborables. Baleares, Canarias e internacional: a consultar.</p><p>Cada pedido sale en su bolsa de lavandería con su ticket.</p>
+    <div class="note">Texto provisional. Tarifas y plazos reales pendientes de cerrar con el transportista.</div>`],
+  returns: ['DEVOLUCIONES', `<p>Tienes 14 días naturales desde que recibes el pedido para devolverlo o cambiarlo, sin usar y con etiqueta.</p>
+    <div class="note">Texto provisional. La política legal (desistimiento, privacidad, cookies) es obligatoria en España y bloquea el lanzamiento.</div>`],
+};
+function openLogin() {
+  openPanel('ENTRAR', `<p>Las cuentas llegan con la tienda real (Fase 3). Por ahora eres invitado, pero puedes ponerte nombre para hablar en la lavandería.</p>
+    <form class="field" data-form="nick"><input id="nickIn" maxlength="12" value="${esc(nick)}" aria-label="Tu nombre"><button class="pbtn">GUARDAR</button></form>`);
+}
+
+// delegated actions (panel + HUD)
+function act(el) {
+  const a = el.dataset.act, d = el.dataset;
+  switch (a) {
+    case 'close': return closePanel();
+    case 'home': closePanel(); centerCam(); return say(pompa, '¡Hola!');
+    case 'catalog': return openCatalog();
+    case 'bag': return openBag();
+    case 'product': return openProduct(d.id);
+    case 'size': return openProduct(d.id, d.size);
+    case 'add': return addToBag(d.id, d.size);
+    case 'try': { const p = PRODUCTS.find(x => x.id === d.id); trial = Object.assign({}, outfit, { [p.wear[0]]: p.wear[1] }); return openWardrobe(); }
+    case 'qty': { const b = bag[+d.i]; const p = PRODUCTS.find(x => x.id === b.id); b.q += +d.d;
+      if (b.q > p.sizes[b.size]) { b.q = p.sizes[b.size]; toast('NO QUEDAN MÁS EN ESA TALLA'); }
+      if (b.q <= 0) bag.splice(+d.i, 1); saveBag(); return openBag(); }
+    case 'checkout': return toast('EL PAGO LLEGA EN LA FASE 3 (STRIPE)');
+    case 'drops': return openPanel('DROPS', `<div class="grid">${DROPS.map(x => `<button class="card" data-act="drop" data-id="${x.id}"><div class="img"><span class="tag ${x.status === 'available' ? '' : x.status === 'coming' ? 'low' : 'out'}">${{ available: 'GIRANDO', coming: 'PRONTO', locked: 'CERRADA', unlocked: 'ABIERTA' }[x.status]}</span><img src="${iconURL('washer', '#1a1a1e')}" alt=""></div><div class="meta"><strong>${x.n} · ${x.status === 'locked' ? '???' : x.name}</strong>${x.hidden ? 'Todavía en el tambor' : 'Lavadora ' + x.n}</div></button>`).join('')}</div>`);
+    case 'drop': { const dr = DROPS.find(x => x.id === d.id); if (dr.hidden) return toast('TODAVÍA EN EL TAMBOR'); return openDrop(d.id); }
+    case 'key': return openKey();
+    case 'wardrobe': return openWardrobe();
+    case 'wear': trial[d.slot] = d.v; return openWardrobe();
+    case 'random-look': { const pick = o => { const k = Object.keys(o); return k[Math.floor(Math.random() * k.length)]; };
+      trial = { skin: pick(SKINS), top: pick(TOPS), head: pick(HEADS), face: pick(FACES) }; return openWardrobe(); }
+    case 'save-look': Object.assign(outfit, trial); trial = null; store.set('outfit', outfit); refreshChip(); closePanel(); pompa.hidden = 0; burst(pompa, 10);
+      return say(pompa, 'Así salgo del vestidor.');
+    case 'archive': return openArchive();
+    case 'filter': return openArchive(d.v);
+    case 'login': return openLogin();
+    default: if (PAGES[a]) return openPanel(...PAGES[a]);
+  }
+}
+document.addEventListener('click', e => { const el = e.target.closest('[data-act]'); if (el) { e.preventDefault(); act(el); } });
+pBody.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target.dataset.form;
+  if (f === 'key') useKey($('#keyIn').value);
+  if (f === 'notify') toast('APUNTADO (DEMO: AÚN NO SE GUARDA)');
+  if (f === 'nick') { nick = ($('#nickIn').value.trim() || 'INVITADO').toUpperCase().slice(0, 12); store.set('nick', nick); refreshChip(); closePanel(); say(pompa, 'Ahora me llamo ' + nick + '.'); }
+});
+
+/* ---------------- intro ---------------- */
+function introArt() {
+  const t = textPts(BRAND); const [c, cg] = [$('#introLogo'), $('#introLogo').getContext('2d')];
+  c.width = t.w + 2; c.height = 7; cg.imageSmoothingEnabled = false;
+  drawText(cg, BRAND, 1, 1, '#2a2a2e'); drawText(cg, BRAND, 0, 0, '#f2f0eb');
+  const pg = $('#introPompa').getContext('2d'); pg.imageSmoothingEnabled = false; pg.drawImage(pompaSprite(outfit, 0, 1), 0, 0);
+}
+function start() {
+  $('#intro').classList.add('out');
+  setTimeout(() => $('#intro').remove(), 600);
+  cam.follow = true;
+  walkTo(2, 7, () => say(pompa, '¿Hola?'));
+  setTimeout(() => { daniel.wave = performance.now() + 1600; say(daniel, 'Bienvenido a la lavandería. Toca el suelo para moverte y los muebles para usarlos.', 7500); }, 900);
+}
+
+/* ---------------- boot ---------------- */
+if (store.get('unlocked', false)) DROPS.find(x => x.id === 'd03').status = 'unlocked';
+buildItems(); rebuildBlocked();
+BG = buildBG();
+prerender();
+layout(); saveBag(); refreshChip(); introArt();
+$('#enter').addEventListener('click', start);
+requestAnimationFrame(frame);
+// debug hook for tests
+window.__sbx = { pompa, daniel, walkTo, ITEMS, outfit, openPanel, act, cam, P };
+})();
+</script>
+</body>
+</html>

@@ -29,6 +29,27 @@ Universo creativo y tienda de **Dani R.** — drops, identidad visual y lanzamie
 | Footer con redes | ✅ links vacíos |
 | Responsive móvil / tablet / desktop | ✅ |
 
+## Miniverso pixel — la lavandería (v1)
+
+`miniverso/index.html` — la tienda como una habitación isométrica en pixel art (estilo juego de habitaciones de los 2000), sin frameworks y en un solo archivo, igual que la maqueta.
+
+**Concepto:** SOAP → lavandería. Cada lavadora es un drop; el personaje no es una persona, es **Pompa**, una pompa de jabón que el cliente viste con la ropa de la tienda. En el mostrador atiende **Daniel** (una pastilla de jabón), la cara del futuro agente de IA de la Fase 4.
+
+| En la sala | Qué hace |
+|---|---|
+| Lavadora 01 (girando) | Drop FIRST SIGNAL disponible → productos |
+| Lavadora 02 (cinta amarilla) | Próximo drop con cuenta atrás y aviso por email (demo) |
+| Lavadora 03 (candado) | Drop cerrado: se abre con llave (llave de prueba: `POMPA-0001`) |
+| Perchero ROPA | Catálogo → ficha con tallas, stock («solo quedan 2»), bolsa |
+| Vestidor | Vestir a Pompa (piel, prenda, gorro, gafas) y enlazar a lo que lleva |
+| Mostrador | Daniel responde a tallas, drops, envíos, precios y stock (reglas fijas, sin IA aún) |
+| Corcho ARCHIVO | Archivo de trabajos con filtros |
+| Salida | Vuelve a la web |
+
+Se mueve tocando el suelo (caminos con obstáculos), los muebles se usan tocándolos, la sala se arrastra en móvil y la cámara sigue a Pompa. Todas las acciones están también en los botones (PRODUCTOS · SHOP · BOLSA, laterales), así que se puede comprar sin «jugar». La bolsa, el look y el nombre se guardan en el navegador.
+
+**Todo es de ejemplo:** productos, precios, stock, llaves y textos de envíos/devoluciones/contacto son placeholders hasta conectar Supabase (Fase 2) y Stripe (Fase 3). Todo el arte está dibujado por código (sin imágenes externas), así que cambiar colores o muebles es tocar el JS.
+
 **Limitaciones conocidas:** todo hardcodeado, sin componentes reutilizables, sin tipado, sin tests, sin CMS, sin carrito, sin pagos, sin usuarios.
 
 ---
