@@ -5,6 +5,7 @@ document.getElementById('lavanderia').innerHTML = `
 
 <div id="stage" aria-label="Tienda en pixel: una lavandería. Toca el suelo para moverte y los muebles para usarlos. Todas las acciones están también en los botones.">
   <canvas id="room" width="320" height="256"></canvas>
+  <div id="tags"></div>
   <div id="says"></div>
 </div>
 <div id="tip"></div>
@@ -37,6 +38,8 @@ document.getElementById('lavanderia').innerHTML = `
   <button class="dbtn shop" data-act="home">SHOP</button>
   <a class="dbtn" href="/bolsa"><img data-icon="bag" alt="">BOLSA<span class="n" id="bagN"></span></a>
 </nav>
+
+<div class="zoom" role="group" aria-label="Zoom de la sala"><button data-act="zoom-in" aria-label="Acercar">+</button><button data-act="zoom-out" aria-label="Alejar">-</button></div>
 
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -194,6 +197,18 @@ function artURL(item) {
   blit(g, rows, 0, off, { o: '#050506', b: base, d: shade(base, -0.25), w: print === base ? shade(base, 0.5) : print });
   return (artCache[item.slug] = c.toDataURL());
 }
+/* Motivo de un arte a tamaño diminuto (cuadros de la pared de la sala). */
+function motifSmall(spec, x, y) {
+  switch (spec.motif) {
+    case 'checker': return ((x >> 1) + (y >> 1)) % 2 === 0;
+    case 'stripes': return x % 3 === 0;
+    case 'dots': return x % 3 === 1 && y % 3 === 1;
+    case 'waves': return (y + Math.round(Math.sin(x * 1.2))) % 3 === 0;
+    case 'grain': return ((x * 7 + y * 13) % 11) === 0;
+    case 'weave': return y % 3 === 0 || x % 4 === 2;
+    default: { const dx = (x % 6) - 2.5, dy = (y % 6) - 2.5, d = Math.hypot(dx, dy); return d > 1.3 && d < 2.4; }
+  }
+}
 /* Muestra pixel de un arte (patrón, textura o textil). */
 function swatchURL(art) {
   const [c, g] = mk(24, 24); const [a, b = '#e8e0d0', cc = b] = art.pattern.colors;
@@ -291,7 +306,7 @@ function pompaSprite(o, frame = 0, facing = 1) {
   // eyes
   const ex = cx + (f > 0 ? 1 : -2);
   if (o.face === 'shades') { px(g, ex - 4, cy - 2, '#070707', 9, 2); px(g, ex - 3, cy - 2, '#9be7ff', 1, 1); px(g, ex + 2, cy - 2, '#9be7ff', 1, 1); }
-  else { px(g, ex - 3, cy - 2, '#111', 1, 2); px(g, ex + 2, cy - 2, '#111', 1, 2); }
+  else { const eh = frame === 3 ? 1 : 2, ey = cy - 2 + (frame === 3 ? 1 : 0); px(g, ex - 3, ey, '#111', 1, eh); px(g, ex + 2, ey, '#111', 1, eh); }
   // floating mini bubble (antenna)
   if (o.head === 'none') {
     const bx = cx + 5 * f, by = cy - r - 3;
@@ -364,8 +379,37 @@ function buildBG() {
     const dark = (x + y) % 2 === 1;
     fillPoly(g, [P(x, y), P(x + 1, y), P(x + 1, y + 1), P(x, y + 1)], dark ? '#1d1d21' : '#ebe5d9');
   }
-  // soft wall shadow on floor
-  for (let t = 0; t < COLS; t += 1) { const [a, b] = P(t, 0); px(g, a, b, 'rgba(0,0,0,.08)'); }
+  // --- luz y volumen ---
+  // brillo en el canto de cada baldosa
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const hi = (x + y) % 2 === 1 ? '#2c2c33' : '#f9f5ec';
+    L3(g, P(x, y), P(x + 1, y), hi); L3(g, P(x, y), P(x, y + 1), hi);
+  }
+  // sombra de las paredes sobre el suelo
+  fillPoly(g, [P(0, 0), P(COLS, 0), P(COLS, 0.45), P(0.45, 0.45), P(0.45, ROWS), P(0, ROWS)], 'rgba(0,0,0,.10)');
+  fillPoly(g, [P(0, 0), P(COLS, 0), P(COLS, 0.18), P(0.18, 0.18), P(0.18, ROWS), P(0, ROWS)], 'rgba(0,0,0,.14)');
+  // sombra de contacto de cada mueble (la luz viene del fondo izquierdo)
+  ITEMS.filter(i => !i.wall).forEach(i => {
+    const [x0, y0, x1, y1] = i.box;
+    fillPoly(g, [P(x0, y0), P(x1 + 0.34, y0 + 0.1), P(x1 + 0.34, y1 + 0.34), P(x0 + 0.1, y1 + 0.34)], 'rgba(0,0,0,.16)');
+    fillPoly(g, [P(x0, y0), P(x1 + 0.14, y0), P(x1 + 0.14, y1 + 0.14), P(x0, y1 + 0.14)], 'rgba(0,0,0,.2)');
+  });
+  // foco cálido en el centro y viñeta hacia los bordes del suelo
+  const [fcx, fcy] = P(4.6, 4.8);
+  for (let y = OY - 2; y < OY + (COLS + ROWS) * 8 + 2; y++) for (let x = 0; x < LW; x++) {
+    if (!tileAt(x + 0.5, y + 0.5)) continue;
+    const d = Math.hypot((x - fcx) / 120, (y - fcy) / 62);
+    if (d < 0.75) { if ((x + y) % 2 === 0) px(g, x, y, `rgba(255,240,205,${(0.14 * (1 - d / 0.75)).toFixed(3)})`); }
+    else px(g, x, y, `rgba(0,0,0,${Math.min(0.28, (d - 0.75) * 0.55).toFixed(3)})`);
+  }
+  // paredes más oscuras hacia el techo
+  for (let i = 0; i < 5; i++) {
+    const z0 = TB + 4 + i * 9;
+    fillPoly(g, [P(0, 0, z0), P(COLS, 0, z0), P(COLS, 0, WALL), P(0, 0, WALL)], 'rgba(0,0,0,.055)');
+    fillPoly(g, [P(0, 0, z0), P(0, ROWS, z0), P(0, ROWS, WALL), P(0, 0, WALL)], 'rgba(0,0,0,.055)');
+  }
+  // halo del neón sobre la pared izquierda
+  for (let i = 0; i < 3; i++) fillPoly(g, [P(0, 3.7 + i * 0.25, 58 - i * 4), P(0, 1.0 - i * 0.25, 58 - i * 4), P(0, 1.0 - i * 0.25, WALL - 1), P(0, 3.7 + i * 0.25, WALL - 1)], 'rgba(155,231,255,.05)');
   // logo on right wall
   let [lx, ly] = P(4.25, 0, 72);
   drawText(g, BRAND, lx + 1, ly + 1, '#0b0b0d', 2, 1);
@@ -433,7 +477,7 @@ function drawWasher(g, tx, drop, f) {
 function addWasher(tx, drop) {
   item({ id: 'washer' + drop.n, label: 'LAVADORA ' + drop.n + ' · ' + (drop.status === 'locked' ? '???' : drop.name),
     box: [tx + 0.08, 0.08, tx + 0.92, 0.92], blocks: [[tx, 0]], use: [tx, 1], nf: 4, fps: drop.status === 'available' ? 8 : 3,
-    draw: (g, f) => drawWasher(g, tx, drop, f), act: () => openDrop(drop.id), drop });
+    draw: (g, f) => drawWasher(g, tx, drop, f), act: () => openDrop(drop.id), drop, tag: tx === 2 || DROPS.length < 2 ? 'DROPS' : null });
 }
 
 function buildItems() {
@@ -453,14 +497,19 @@ function buildItems() {
     draw: g => {
       fillPoly(g, [P(0.02, 6.05, 27), P(0.02, 3.95, 27), P(0.02, 3.95, 59), P(0.02, 6.05, 59)], '#3a2a1c');
       fillPoly(g, [P(0.02, 5.95, 29), P(0.02, 4.05, 29), P(0.02, 4.05, 57), P(0.02, 5.95, 57)], '#9c7148');
-      const slots = [[5.75, 53], [5.2, 50], [4.6, 54], [5.55, 41], [4.95, 39], [4.4, 42]];
+      // seis muestras enmarcadas con el motivo real de cada arte
+      const slots = [[5.88, 57], [5.22, 57], [4.56, 57], [5.88, 43], [5.22, 43], [4.56, 43]];
       slots.forEach(([t, z], i) => {
-        const art = ARTS[i]; const c = art ? art.pattern.colors[1] || art.pattern.colors[0] : '#e8e0d0'; const c0 = art ? art.pattern.colors[0] : '#1a1a1e';
-        fillPoly(g, [P(0.02, t, z - 10), P(0.02, t - 0.42, z - 10), P(0.02, t - 0.42, z), P(0.02, t, z)], '#f2f0eb');
-        fillPoly(g, [P(0.02, t - 0.06, z - 7), P(0.02, t - 0.36, z - 7), P(0.02, t - 0.36, z - 1), P(0.02, t - 0.06, z - 1)], c0);
-        fillPoly(g, [P(0.02, t - 0.06, z - 7), P(0.02, t - 0.21, z - 7), P(0.02, t - 0.21, z - 4), P(0.02, t - 0.06, z - 4)], c);
-        fillPoly(g, [P(0.02, t - 0.21, z - 4), P(0.02, t - 0.36, z - 4), P(0.02, t - 0.36, z - 1), P(0.02, t - 0.21, z - 1)], c);
-        const [pxx, pyy] = P(0.02, t - 0.21, z); px(g, pxx, pyy - 1, '#ff6b6b');
+        const art = ARTS[i]; const [sx0, sy0] = P(0.02, t, z); const W = 9, H = 12;
+        for (let u = 0; u < W; u++) for (let v = 0; v < H; v++) {
+          const X = Math.round(sx0) + u, Y = Math.round(sy0) + v - Math.floor(u / 2);
+          const frame = u === 0 || v === 0 || u === W - 1 || v === H - 1;
+          let col = '#f2f0eb';
+          if (!frame && art) col = motifSmall(art.pattern, u - 1, v - 1) ? (art.pattern.colors[1] || '#e8e0d0') : art.pattern.colors[0];
+          if (!frame && !art) col = '#b08a63';
+          px(g, X, Y, col);
+        }
+        px(g, Math.round(sx0) + 4, Math.round(sy0) - 3, '#ff6b6b');
       });
       const [sx, sy] = P(0.02, 5.85, 66); drawText(g, 'ARTES', sx, sy, '#e8e0d0', 1, -1);
     }, act: () => openArtworks() });
@@ -491,7 +540,7 @@ function buildItems() {
       L3(g, P(0.3, 2.95, 44), P(0.42, 2.95, 40), '#ffffff');
     }, act: () => { hidePompa(700); setTimeout(() => openWardrobe(), 450); } });
   // counter + register
-  item({ id: 'counter', label: 'MOSTRADOR · HABLA CON DANIEL', box: [6, 2.1, 8.95, 2.9], blocks: [[6, 2], [7, 2], [8, 2]], use: [7, 3],
+  item({ id: 'counter', tag: 'DANIEL', label: 'MOSTRADOR · HABLA CON DANIEL', box: [6, 2.1, 8.95, 2.9], blocks: [[6, 2], [7, 2], [8, 2]], use: [7, 3],
     draw: g => {
       isoBox(g, 6, 2.1, 0, 2.95, 0.8, 18, '#34343a', '#1a1a1e', '#111114', '#050506');
       [[6.4, 2.4], [6.9, 2.6], [7.4, 2.3], [7.9, 2.7], [8.5, 2.45]].forEach(([a, b]) => { const [vx, vy] = P(a, b, 18); px(g, vx, vy, '#5a5a62', 3, 1); });
@@ -522,7 +571,7 @@ function buildItems() {
       const [sx, sy] = P(3.0, 5.53, 43.5); drawText(g, 'ROPA', sx, sy, '#f2f0eb', 1, 1);
     }, act: () => openCatalog() });
   // bench with laundry basket
-  item({ id: 'bench', label: 'BANCO DE ESPERA', box: [7.95, 5.0, 8.9, 7.9], blocks: [[8, 5], [8, 6], [8, 7]], use: [7, 6],
+  item({ id: 'bench', label: 'BANCO DE ESPERA', tag: null, box: [7.95, 5.0, 8.9, 7.9], blocks: [[8, 5], [8, 6], [8, 7]], use: [7, 6],
     draw: g => {
       [[8.05, 5.1], [8.65, 5.1], [8.05, 7.6], [8.65, 7.6]].forEach(([a, b]) => isoBox(g, a, b, 0, 0.12, 0.12, 8, ...BLACK));
       isoBox(g, 7.95, 5.0, 8, 0.9, 2.9, 3, '#c9b99a', '#a8987a', '#8c7d62', '#2a2118');
@@ -622,6 +671,28 @@ let BG;
 let hoverTile = null, hoverItem = null;
 let drawOrder = [];
 
+const tagsEl = $('#tags'); let tagKey = '';
+function buildTags() {
+  tagsEl.innerHTML = '';
+  ITEMS.forEach(it => {
+    if (!it.act || it.tag === null) return;
+    const el = document.createElement('span');
+    // Los muebles con rótulo pintado solo enseñan la etiqueta al pasar por encima.
+    el.className = 'ftag' + (['door', 'board', 'booth', 'rack'].includes(it.id) ? ' quiet' : ''); el.textContent = it.tag || it.label.split(' · ')[0];
+    tagsEl.appendChild(el); it.tagEl = el;
+  });
+  tagKey = '';
+}
+function placeTags() {
+  const key = cam.x + ',' + cam.y + ',' + cam.s + ',' + (hoverItem ? hoverItem.id : '');
+  if (key === tagKey) return; tagKey = key;
+  ITEMS.forEach(it => {
+    if (!it.tagEl) return;
+    it.tagEl.style.left = (cam.x + (it.bb[0] + it.bb[2]) / 2 * cam.s) + 'px';
+    it.tagEl.style.top = (cam.y + it.bb[1] * cam.s - 6) + 'px';
+    it.tagEl.classList.toggle('on', hoverItem === it);
+  });
+}
 function prerender() {
   ITEMS.forEach(it => {
     it.frames = [];
@@ -660,8 +731,10 @@ function drawChar(c, now) {
   if (c === pompa) {
     const moving = c.path.length > 0;
     const bob = moving ? 0 : (Math.floor(now / 500) % 2 ? -1 : 0);
-    const spr = pompaSprite(outfit, moving ? 1 + (c.frame % 2) : 0, c.facing);
-    g.drawImage(spr, Math.round(sx - 11), Math.round(sy - 26 + bob));
+    const blink = !moving && (now % 3800) < 130;
+    const hop = moving && c.frame % 2 ? -1 : 0;
+    const spr = pompaSprite(outfit, moving ? 1 + (c.frame % 2) : (blink ? 3 : 0), c.facing);
+    g.drawImage(spr, Math.round(sx - 11), Math.round(sy - 26 + bob + hop));
   } else {
     const fr = (now % 4200) < 160 ? 3 : (c.wave > now ? 1 + Math.floor(now / 180) % 2 : 0);
     const spr = danielSprite(fr);
@@ -714,6 +787,7 @@ function frame(now) {
     g.fillRect(bb[2] - 1, bb[3] + 1, 3, 1); g.fillRect(bb[2] + 1, bb[3] - 1, 1, 3);
   }
   parts.forEach(b => drawBubble(g, b));
+  placeTags();
   // speech bubbles follow their speaker
   const stack = new Map();
   for (let i = bubbles.length - 1; i >= 0; i--) {
@@ -737,7 +811,9 @@ const stage = $('#stage');
 const cam = { s: 2, x: 0, y: 0, w: 0, h: 0 };
 function layout() {
   const W = innerWidth, H = innerHeight;
-  const s = Math.max(2, Math.floor(Math.min(W / LW, (H - 40) / LH)));
+  const base = Math.max(2, Math.floor(Math.min(W / LW, (H - 40) / LH)));
+  const s = Math.max(2, Math.min(6, base + (cam.zoom || 0)));
+  cam.zoom = s - base;
   cam.s = s; cam.w = LW * s; cam.h = LH * s;
   room.style.width = cam.w + 'px'; room.style.height = cam.h + 'px';
   centerCam();
@@ -752,6 +828,16 @@ function clampCam() {
 function centerCam() {
   const [sx, sy] = P(4.5, 3.5, 10);
   cam.x = Math.round(innerWidth / 2 - sx * cam.s); cam.y = Math.round((innerHeight - 60) / 2 - sy * cam.s);
+  clampCam();
+}
+function zoomBy(d) {
+  const s = Math.max(2, Math.min(6, cam.s + d));
+  if (s === cam.s) return;
+  const cx = (innerWidth / 2 - cam.x) / cam.s, cy = (innerHeight / 2 - cam.y) / cam.s;
+  cam.zoom = (cam.zoom || 0) + (s - cam.s);
+  cam.s = s; cam.w = LW * s; cam.h = LH * s;
+  room.style.width = cam.w + 'px'; room.style.height = cam.h + 'px';
+  cam.x = Math.round(innerWidth / 2 - cx * s); cam.y = Math.round(innerHeight / 2 - cy * s);
   clampCam();
 }
 function toLogical(e) { return [(e.clientX - cam.x) / cam.s, (e.clientY - cam.y) / cam.s]; }
@@ -956,6 +1042,8 @@ function act(el) {
   switch (a) {
     case 'close': return closePanel();
     case 'home': closePanel(); centerCam(); return say(pompa, '¡Hola!');
+    case 'zoom-in': return zoomBy(1);
+    case 'zoom-out': return zoomBy(-1);
     case 'catalog': return openCatalog();
     case 'drops': return openPanel('DROPS', `<div class="grid">${DROPS.map(x => `<a class="card" href="${x.href}"><div class="img"><span class="tag ${x.status === 'available' ? '' : x.status === 'coming' ? 'low' : 'out'}">${PHASE_LABEL[x.phase] || ''}</span><img src="${iconURL('washer', '#1a1a1e')}" alt=""></div><div class="meta"><strong>${x.n} · ${esc(x.name)}</strong>Lavadora ${x.n}</div></a>`).join('')}</div>`);
     case 'key': return openKey();
@@ -1011,6 +1099,7 @@ fetch('/api/room').then(r => { if (!r.ok) throw new Error('room'); return r.json
   buildItems(); rebuildBlocked();
   BG = buildBG();
   prerender();
+  buildTags();
   layout();
   requestAnimationFrame(frame);
   const enter = $('#enter'); enter.disabled = false; enter.textContent = 'ENTRAR';
