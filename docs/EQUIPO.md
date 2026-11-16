@@ -58,9 +58,9 @@ Regla de oro: **precio, stock y totales los decide la base** (`checkout_create`,
 - Primero la prueba que falla, luego el código. Un fallo arreglado sin prueba no cuenta como arreglado.
 - `pnpm test` en local antes de abrir la PR; `pnpm build && pnpm e2e` si tocas páginas o la sala.
 
-**Vercel (plan Hobby)**
-- El proyecto `soapbrxnd` despliega desde la carpeta `web/` con Next.js. Cada push a una rama con PR genera una *preview* privada (pide iniciar sesión en Vercel).
-- En Hobby, Vercel **bloquea** el despliegue si el autor del commit, o cualquier `Co-Authored-By` del mensaje, no es miembro del equipo de Vercel. Los commits que tienen que desplegarse van firmados por una cuenta del equipo y sin coautores externos. Para que varias personas desplieguen hay que pasar el equipo a Pro.
+**Vercel**
+- El proyecto `soapbrxnd` (equipo L'Atelier, plan Pro) despliega desde la carpeta `web/` con Next.js. Cada push a una rama con PR genera una *preview* privada (pide iniciar sesión en Vercel).
+- Mientras el repositorio sea **público**, Vercel bloquea las previews de los pushes que no hace un miembro del equipo (por ejemplo, los de un bot o un agente). El proyecto `atelier-web`, con el repo privado, despliega sin problema. Para desbloquear: repositorio privado, o aprobar el despliegue desde Vercel, o que el push lo haga una persona del equipo.
 
 **Secretos**
 - Solo en `.env.local` y en Vercel. Nunca en el repo, en issues ni en el chat del equipo. La lista está en `web/.env.example`.
