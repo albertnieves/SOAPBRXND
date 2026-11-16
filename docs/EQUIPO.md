@@ -7,7 +7,7 @@ Este documento es el punto de partida para cualquiera que se sume. Explica qué 
 | Carpeta | Qué es | Estado |
 |---|---|---|
 | `index.html` | Maqueta v0 de la web (agosto) | Referencia visual, no se toca |
-| `miniverso/` | Prototipo de la lavandería pixel en un solo HTML | Referencia; la versión viva está en `web/public/room/` |
+| `miniverso/` | Prototipo de la lavandería pixel en un solo HTML | Referencia; la versión viva está en `web/src/room/` |
 | `web/` | **La tienda real**: Next.js 16 + Supabase + Stripe + Resend | Fases A y B hechas, lista para poner en marcha |
 | `docs/PLAN_ECOMMERCE.md` | Estrategia: qué tienda queremos y por qué | Decisiones del 15/11 marcadas |
 | `docs/plans/` | Planes por tareas ya ejecutados | Histórico |
@@ -29,7 +29,7 @@ src/
   components/   piezas de UI (ProductArt, Washer, CareLabel, VariantPicker…)
   data/         semilla de ejemplo → supabase/seed.sql
 supabase/migrations/   esquema, reservas, pagos y permisos (la lógica de dinero vive aquí)
-public/room/           la lavandería pixel (JS plano + CSS acotado a #lavanderia)
+src/room/              la lavandería (TypeScript: dibujo vectorial en canvas + CSS acotado a #lavanderia)
 tests/unit/            dominio + base de datos real en memoria (PGlite)
 tests/e2e/             Playwright, escritorio y móvil, en modo demo
 ```
@@ -73,7 +73,7 @@ Regla de oro: **precio, stock y totales los decide la base** (`checkout_create`,
 | Área | Qué lleva | Carpetas | Responsable |
 |---|---|---|---|
 | **Producto y marca** | Fotos, artes, textos, guía de tallas, legal, precios, nombre definitivo | `src/data/`, contenido en Supabase, `app/legal/` | — |
-| **Frontend y sala** | Páginas, diseño (`tk-`), lavandería pixel, accesibilidad, rendimiento | `src/app/`, `src/components/`, `public/room/` | — |
+| **Frontend y sala** | Páginas, diseño (`tk-`), lavandería pixel, accesibilidad, rendimiento | `src/app/`, `src/components/`, `src/room/` | — |
 | **Backend y pagos** | Supabase, migraciones, Stripe, correos, panel, seguridad | `supabase/`, `src/modules/checkout`, `payments`, `mail`, `src/app/api/` | — |
 
 *(Rellenar con nombres. Una persona puede llevar dos áreas.)*
@@ -143,7 +143,7 @@ Ordenadas por impacto. Cada una cabe en una PR.
 | 1 | ESLint + Prettier con reglas compartidas en la CI | Hoy solo hay `tsc`; con varias personas el estilo diverge rápido | Frontend |
 | 2 | Caché del catálogo (ISR o `unstable_cache` con revalidación al guardar desde el panel) | Cada página hace 7 consultas a Supabase en cada visita | Backend |
 | 3 | Fotos con `next/image` y *loader* de Supabase | Tamaños y formatos adecuados, mejor Lighthouse | Frontend |
-| 4 | Pasar la sala (`public/room/room.js`, ~1.100 líneas) a módulos TypeScript con pruebas | Hoy es JS plano sin tipos; cuesta tocarla sin romperla | Frontend |
+| 4 | ~~Pasar la sala a módulos TypeScript con pruebas~~ **Hecho**: vive en `src/room/` con pruebas en `tests/unit/room-logic.test.ts` y `tests/e2e/room.spec.ts` | Era JS plano sin tipos; costaba tocarla sin romperla | Frontend |
 | 5 | Errores y avisos con Sentry (o similar) | Hoy los pedidos «a revisar» solo están en logs y correo | Backend |
 | 6 | Auditoría de accesibilidad con axe en los e2e | Foco, contraste y lectores de pantalla en ficha y checkout | Frontend |
 | 7 | Comprobación de moneda e identificar sesiones de Stripe por `metadata.order_id` | Más robusto ante eventos raros del webhook | Backend |

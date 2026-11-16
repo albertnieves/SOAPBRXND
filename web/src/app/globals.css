@@ -1,7 +1,7 @@
 /*
  * Tienda SOAPBRXND: la pared de azulejo de la lavandería.
  * Las piezas cuelgan de una barra, la ficha lleva su etiqueta cosida y la bolsa es un ticket.
- * Todas las clases llevan el prefijo tk- para no chocar con la sala pixel (public/room/room.css).
+ * Todas las clases llevan el prefijo tk- para no chocar con la sala (src/room/room.css).
  */
 :root {
   --tile: #ece8df;

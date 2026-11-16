@@ -24,7 +24,7 @@ pnpm build && pnpm e2e   # extremo a extremo, escritorio y móvil
 | Mockups de pixel de cada pieza (silueta del soporte rellena con el arte) | `src/modules/catalog/mockup.ts` + `src/components/ProductArt.tsx` |
 | Correos de pedido (Resend) | `src/modules/mail/` |
 | Diseño de la tienda (pared de azulejo, barra, etiqueta cosida, ticket) | `src/app/globals.css`, clases `tk-` |
-| Lavandería pixel | `public/room/room.js` y `room.css` (portados de `miniverso/`), datos en `GET /api/room` |
+| Lavandería | `src/room/` (módulos TypeScript: `core` dibujo isométrico, `scene` sala y muebles, `chars` personajes, `art` prendas y patrones, `logic` reglas puras con pruebas, `main` motor y paneles), montada por `src/components/Room.tsx`; datos en `GET /api/room`, bolsa en `POST /api/bolsa` |
 
 **Reglas que no se rompen**
 

@@ -1,18 +1,16 @@
 import Link from 'next/link';
-import Script from 'next/script';
+import { Room } from '@/components/Room';
 import { Washer } from '@/components/Washer';
 import { getCatalog } from '@/modules/catalog/source';
 
 export const dynamic = 'force-dynamic';
 
-/* La portada es la lavandería pixel (public/room). Debajo queda la misma tienda en HTML normal. */
+/* La portada es la lavandería (src/room). Debajo queda la misma tienda en HTML normal. */
 export default async function Home() {
   const view = await getCatalog();
   return (
     <>
-      <link rel="stylesheet" href="/room/room.css" precedence="default" />
-      <div id="lavanderia" aria-label="Lavandería SOAPBRXND" />
-      <Script src="/room/room.js" strategy="afterInteractive" />
+      <Room />
       <h1>SOAPBRXND, lavandería de drops</h1>
       <p className="tk-lede">Patrones de estampado, texturas y textiles convertidos en prendas, láminas y tela por metro. Cada lavadora es un drop.</p>
       <h2>Drops</h2>
