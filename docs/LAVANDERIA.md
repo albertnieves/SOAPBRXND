@@ -58,7 +58,7 @@ En el navegador de cada visitante (`localStorage`, con el prefijo `sbx_`): el no
 ## 2. Cómo está montado
 
 ```
-web/src/components/Room.tsx    componente cliente: carga el CSS y arranca la sala
+web/src/components/Room.tsx    componente cliente: carga el CSS, arranca la sala y la desmonta al salir
 web/src/room/
   core.ts     proyección isométrica, color, trazados, caras de cajas y cilindros, sprites
   logic.ts    reglas puras: caminos, teclado, bolsa, hora del día, respuestas de Daniel
@@ -93,6 +93,17 @@ Es un `<canvas>` dibujado con trazos vectoriales a la resolución de la pantalla
 - **Profundidad**: muebles y personajes se ordenan por su posición en el suelo antes de pintarse.
 - **Luz**: con la luz de ambiente se oscurece la sala y se suman focos de luz (`lights` en la escena).
 - **Movimiento reducido**: si el sistema lo pide (`prefers-reduced-motion`), se quitan las animaciones decorativas.
+
+### Montar y desmontar
+
+`mount(ROOT)` en `main.ts` devuelve una función que desmonta la sala; `Room.tsx` la llama al salir de la portada sin recargar (por ejemplo, con el botón de volver). Mientras la sala está montada:
+
+- `body` no hace scroll, y lo de debajo de la sala (cabecera, la tienda en HTML y pie) está `inert`, para que el teclado no se pierda por enlaces que no se ven.
+- Lo que la sala escucha en `window` y `document` lleva la `signal` de un `AbortController`, y se suelta todo de una vez al desmontar.
+
+Si `GET /api/room` falla, la pantalla de entrada ofrece «VER LA TIENDA SIN SALA», que desmonta la sala y deja la tienda normal.
+
+Si añades un escuchador fuera de `ROOT`, pásale `on` (`addEventListener('x', f, on)`). Si añades un temporizador o un `requestAnimationFrame` que se repite, páralo en `destroy()`.
 
 ### Personajes
 
@@ -143,7 +154,9 @@ No hay que tocar la sala: sale del catálogo. Si el soporte de la pieza es una p
 |---|---|---|
 | Caminos, teclado, bolsa, hora, Daniel | `tests/unit/room-logic.test.ts` | `pnpm test` |
 | Datos que recibe la sala | `tests/unit/catalog-view.test.ts` (bloque `roomData`) | `pnpm test` |
+| `POST /api/bolsa`: reglas de stock, drop, topes y formato | `tests/unit/bag-route.test.ts` | `pnpm test` |
 | La sala en el navegador, escritorio y móvil | `tests/e2e/room.spec.ts` | `pnpm build && pnpm e2e` |
+| Montar y desmontar la sala, foco, fallo al cargar | `tests/e2e/room-lifecycle.spec.ts` | `pnpm build && pnpm e2e` |
 
 Las e2e cubren: que la sala pinta el catálogo, la ficha rápida, añadir a la bolsa, los rechazos de `/api/bolsa`, el vestidor (y que el look se recuerda), el teclado, los calcetines, la luz y la recomendación de Daniel.
 
@@ -153,5 +166,4 @@ Para depurar en el navegador, la sala deja un objeto `window.__sbx` con el estad
 
 - Daniel no es una IA: solo reconoce las frases de la lista de arriba.
 - El progreso (look, calcetines) vive en el navegador; no se comparte entre dispositivos.
-- `POST /api/bolsa` no tiene prueba unitaria propia; está cubierta por las e2e.
 - La sala muestra como mucho cuatro lavadoras. Con más drops visibles, los siguientes solo salen en `/drops`.

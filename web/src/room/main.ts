@@ -99,9 +99,13 @@ const TEMPLATE = `
 </div>
 `;
 
-export function mount(ROOT: HTMLElement): void {
-  if (ROOT.dataset.on) return;
+/** Monta la sala en ROOT y devuelve cómo desmontarla (al salir de la portada sin recargar). */
+export function mount(ROOT: HTMLElement): () => void {
+  if (ROOT.dataset.on) return () => {};
   ROOT.dataset.on = '1';
+  // todo lo que se escucha fuera de ROOT se suelta de golpe al desmontar
+  const ac = new AbortController();
+  const on = { signal: ac.signal };
   ROOT.innerHTML = TEMPLATE;
   const $ = <T extends HTMLElement = HTMLElement>(s: string) => ROOT.querySelector(s) as T;
   const reduceMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -603,7 +607,7 @@ export function mount(ROOT: HTMLElement): void {
   });
   stage.addEventListener('pointercancel', (e) => { endPointer(e); drag = null; stage.classList.remove('grab'); });
   stage.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016))); }, { passive: false });
-  addEventListener('resize', () => resize(false));
+  addEventListener('resize', () => resize(false), on);
 
   const chatIn = $<HTMLInputElement>('#chatIn');
   const typing = (el: EventTarget | null) => el instanceof HTMLElement && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
@@ -625,9 +629,9 @@ export function mount(ROOT: HTMLElement): void {
     if (k === '+' || k === '=') return zoomAt(VW / 2, (VH - BOTTOM) / 2, 1.2);
     if (k === '-') return zoomAt(VW / 2, (VH - BOTTOM) / 2, 1 / 1.2);
     if (k === 't' || k === '/') { e.preventDefault(); chatIn.focus({ preventScroll: true }); }
-  });
-  addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
-  addEventListener('blur', () => keys.clear());
+  }, on);
+  addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()), on);
+  addEventListener('blur', () => keys.clear(), on);
 
   /* ---------------- Daniel ---------------- */
   function talkDaniel() {
@@ -980,7 +984,7 @@ export function mount(ROOT: HTMLElement): void {
 
   /* ---------------- bolsa ---------------- */
   function refreshBag() { const n = bagCount(document.cookie); $('#bagN').textContent = n ? String(n) : ''; }
-  document.addEventListener('visibilitychange', refreshBag);
+  document.addEventListener('visibilitychange', refreshBag, on);
 
   /* ---------------- portada ---------------- */
   let introRaf = 0;
@@ -1004,15 +1008,37 @@ export function mount(ROOT: HTMLElement): void {
     stage.focus({ preventScroll: true });
   }
 
-  /* ---------------- arranque ---------------- */
+  /* ---------------- arranque y desmontaje ---------------- */
   const prevOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden';
+  // La sala tapa la página entera: lo de debajo (la misma tienda en HTML) no debe recibir el foco del teclado.
+  const muted: HTMLElement[] = [];
+  for (let el: HTMLElement | null = ROOT; el && el !== document.body; el = el.parentElement) {
+    for (const sib of el.parentElement?.children ?? []) {
+      if (sib === el || !(sib instanceof HTMLElement) || sib.inert || /^(SCRIPT|STYLE|NEXT-ROUTE-ANNOUNCER)$/.test(sib.tagName)) continue;
+      sib.inert = true; muted.push(sib);
+    }
+  }
+  let gone = false, debug: unknown = null;
+  function destroy() {
+    if (gone) return;
+    gone = true; running = false; ac.abort();
+    cancelAnimationFrame(introRaf); cancelAnimationFrame(mirrorRaf);
+    clearInterval(countTimer); clearTimeout(resTimer); clearTimeout(toastT);
+    void actx?.close().catch(() => null);
+    muted.forEach((el) => { el.inert = false; });
+    document.body.style.overflow = prevOverflow;
+    const w = window as unknown as { __sbx?: unknown };
+    if (w.__sbx === debug) delete w.__sbx;
+    ROOT.innerHTML = ''; delete ROOT.dataset.on;
+  }
   refreshBag(); refreshSocks(); refreshLightBtn();
   const fonts: Promise<unknown> = document.fonts
     ? Promise.race([Promise.all([document.fonts.load('700 20px "Familjen Grotesk"'), document.fonts.load('700 10px Silkscreen'), document.fonts.load('400 10px Silkscreen')]), new Promise((r) => setTimeout(r, 2500))])
     : Promise.resolve();
   const enter = $<HTMLButtonElement>('#enter');
   Promise.all([fetch('/api/room').then((r) => { if (!r.ok) throw new Error('room'); return r.json() as Promise<RoomData>; }), fonts.catch(() => null)]).then(([data]) => {
+    if (gone) return;
     DATA = data;
     reviveOutfit();
     resize(false);
@@ -1024,10 +1050,17 @@ export function mount(ROOT: HTMLElement): void {
     requestAnimationFrame(frame);
     enter.disabled = false; enter.textContent = 'ENTRAR';
     enter.addEventListener('click', start, { once: true });
-    (window as unknown as { __sbx: unknown }).__sbx = {
+    debug = (window as unknown as { __sbx: unknown }).__sbx = {
       pompa, daniel, rumbi, walkTo, outfit, openPanel, act, run, cam, P, socks, env,
       get ITEMS() { return scene.items; }, get scene() { return scene; }, get DATA() { return DATA; },
       toScreen: (x: number, y: number, z = 0) => toScreen(...P(x, y, z)),
     };
-  }).catch(() => { enter.textContent = 'NO SE PUDO CARGAR'; document.body.style.overflow = prevOverflow; });
+  }).catch(() => {
+    if (gone) return;
+    // Sin datos no hay sala: se quita y queda la tienda normal que hay debajo.
+    enter.textContent = 'VER LA TIENDA SIN SALA'; enter.disabled = false;
+    $('#intro .hint').textContent = 'La lavandería no se pudo cargar.';
+    enter.addEventListener('click', destroy, { once: true });
+  });
+  return destroy;
 }
