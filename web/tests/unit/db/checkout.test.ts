@@ -15,7 +15,7 @@ let db: PGlite;
 beforeEach(async () => { db = await freshDb(); });
 
 const pay = (event: string, session: string, amount: number) =>
-  as<{ r: { status: string } }>(db, 'service_role', 'select public.checkout_confirm_paid($1, $2, $3, $4) as r', [event, session, amount, 'pi_test']).then((r) => r[0]!.r);
+  as<{ r: { status: string } }>(db, 'service_role', 'select public.checkout_confirm_paid($1, $2, $3, $4, $5) as r', [event, session, amount, 'pi_test', 'eur']).then((r) => r[0]!.r);
 const attach = (order: string, session: string) =>
   as(db, 'service_role', 'select public.checkout_attach_session($1::uuid, $2)', [order, session]);
 const orderStatus = async (id: string) => (await db.query<{ status: string }>('select status from public.orders where id = $1', [id])).rows[0]!.status;
@@ -142,6 +142,47 @@ describe('pago con Stripe', () => {
     expect(await stockOf(db, TEE_M)).toBe(5);
   });
 
+  // La sesión de Stripe se creó pero checkout_attach_session falló (red, timeout):
+  // el pedido se encuentra por metadata.order_id.
+  const payFull = (event: string, session: string, amount: number, currency: string | null, order: string | null) =>
+    as<{ r: { status: string; order_id?: string } }>(db, 'service_role',
+      'select public.checkout_confirm_paid($1, $2, $3, $4, $5, $6::uuid) as r', [event, session, amount, 'pi_test', currency, order]).then((r) => r[0]!.r);
+
+  it('pago de una sesión sin enlazar: encuentra el pedido por metadata.order_id', async () => {
+    const s = await createOrder(db, [{ variant_id: TEE_M, quantity: 1 }]);
+    expect(await payFull('evt_m1', 'cs_sin_enlazar', s.total_cents, 'eur', s.order_id)).toMatchObject({ status: 'paid', order_id: s.order_id });
+    expect(await stockOf(db, TEE_M)).toBe(5);
+    const linked = await db.query<{ stripe_session_id: string }>('select stripe_session_id from public.orders where id = $1', [s.order_id]);
+    expect(linked.rows[0]!.stripe_session_id).toBe('cs_sin_enlazar');
+  });
+
+  it('metadata.order_id no sirve para robar un pedido que ya tiene otra sesión', async () => {
+    const s = await createOrder(db, [{ variant_id: TEE_M, quantity: 1 }]);
+    await attach(s.order_id, 'cs_buena');
+    expect((await payFull('evt_m2', 'cs_otra', s.total_cents, 'eur', s.order_id)).status).toBe('unknown_session');
+    expect(await orderStatus(s.order_id)).toBe('pending');
+    expect(await stockOf(db, TEE_M)).toBe(6);
+  });
+
+  it('moneda distinta de EUR: queda para revisar', async () => {
+    const s = await createOrder(db, [{ variant_id: TEE_M, quantity: 1 }]);
+    await attach(s.order_id, 'cs_usd');
+    expect((await payFull('evt_m3', 'cs_usd', s.total_cents, 'usd', s.order_id)).status).toBe('needs_attention');
+  });
+
+  it('sin moneda informada también queda para revisar', async () => {
+    const s = await createOrder(db, [{ variant_id: TEE_M, quantity: 1 }]);
+    await attach(s.order_id, 'cs_null');
+    expect((await payFull('evt_m4', 'cs_null', s.total_cents, null, null)).status).toBe('needs_attention');
+  });
+
+  it('caducar una sesión sin enlazar libera la reserva por metadata.order_id', async () => {
+    const s = await createOrder(db, [{ variant_id: HOODIE_L, quantity: 2 }]);
+    await as(db, 'service_role', 'select public.checkout_expire($1, $2, $3::uuid)', ['evt_m5', 'cs_sin_enlazar_2', s.order_id]);
+    expect(await orderStatus(s.order_id)).toBe('expired');
+    expect(await availableOf(db, HOODIE_L)).toBe(2);
+  });
+
   it('holds_release_expired libera reservas vencidas', async () => {
     const s = await createOrder(db, [{ variant_id: HOODIE_L, quantity: 1 }], { hold: 5 });
     await db.exec(`update public.holds set expires_at = now() - interval '1 minute'; update public.orders set reserved_until = now() - interval '1 minute'`);
@@ -178,6 +219,6 @@ describe('permisos', () => {
     await expect(as(db, 'anon', 'select * from public.orders')).rejects.toThrow(/permission denied/);
     await expect(as(db, 'anon', 'select * from public.holds')).rejects.toThrow(/permission denied/);
     await expect(as(db, 'anon', `select public.checkout_create(gen_random_uuid(), '[]'::jsonb, '{}'::jsonb, 30)`)).rejects.toThrow(/permission denied/);
-    await expect(as(db, 'authenticated', `select public.checkout_confirm_paid('e', 's', 1, 'p')`)).rejects.toThrow(/permission denied/);
+    await expect(as(db, 'authenticated', `select public.checkout_confirm_paid('e', 's', 1, 'p', 'eur')`)).rejects.toThrow(/permission denied/);
   });
 });

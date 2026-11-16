@@ -64,15 +64,27 @@ describe('webhook', () => {
     expect(() => verifyEvent(payload, header, secret)).toThrow();
   });
 
+  const ORDER = '0b6f8a2e-3c1d-4e5f-9a7b-1c2d3e4f5a6b';
   const calls: [string, object][] = [];
   const rpc = async (fn: string, args: object) => { calls.push([fn, args]); return { status: 'ok' }; };
   const ev = (type: string, object: object) => ({ id: 'evt_x', type, data: { object } }) as unknown as Stripe.Event;
 
   it('pago completado → checkout_confirm_paid', async () => {
     calls.length = 0;
-    const r = await handleEvent(ev('checkout.session.completed', { id: 'cs_1', payment_status: 'paid', amount_total: 7490, payment_intent: 'pi_1' }), rpc);
+    const r = await handleEvent(ev('checkout.session.completed', { id: 'cs_1', payment_status: 'paid', amount_total: 7490, currency: 'eur', payment_intent: 'pi_1', metadata: { order_id: ORDER } }), rpc);
     expect(r.handled).toBe(true);
-    expect(calls).toEqual([['checkout_confirm_paid', { p_event_id: 'evt_x', p_session: 'cs_1', p_amount_total: 7490, p_payment_intent: 'pi_1' }]]);
+    expect(calls).toEqual([['checkout_confirm_paid', { p_event_id: 'evt_x', p_session: 'cs_1', p_amount_total: 7490, p_payment_intent: 'pi_1', p_currency: 'eur', p_order: ORDER }]]);
+  });
+  it('sin metadata usa client_reference_id; un id que no es uuid no llega a la base', async () => {
+    calls.length = 0;
+    await handleEvent(ev('checkout.session.completed', { id: 'cs_1', payment_status: 'paid', amount_total: 1, currency: 'eur', client_reference_id: ORDER }), rpc);
+    await handleEvent(ev('checkout.session.completed', { id: 'cs_1', payment_status: 'paid', amount_total: 1, currency: 'eur', metadata: { order_id: 'x; drop table' } }), rpc);
+    expect(calls.map(([, a]) => (a as { p_order: unknown }).p_order)).toEqual([ORDER, null]);
+  });
+  it('sin moneda se manda null (la base lo deja para revisar)', async () => {
+    calls.length = 0;
+    await handleEvent(ev('checkout.session.completed', { id: 'cs_1', payment_status: 'paid', amount_total: 1 }), rpc);
+    expect((calls[0]![1] as { p_currency: unknown }).p_currency).toBeNull();
   });
   it('completado pero sin pagar todavía (pago diferido) → no confirma', async () => {
     calls.length = 0;
@@ -87,9 +99,12 @@ describe('webhook', () => {
   });
   it('sesión caducada o pago diferido fallido → checkout_expire', async () => {
     calls.length = 0;
-    await handleEvent(ev('checkout.session.expired', { id: 'cs_3' }), rpc);
+    await handleEvent(ev('checkout.session.expired', { id: 'cs_3', metadata: { order_id: ORDER } }), rpc);
     await handleEvent(ev('checkout.session.async_payment_failed', { id: 'cs_4' }), rpc);
-    expect(calls).toEqual([['checkout_expire', { p_event_id: 'evt_x', p_session: 'cs_3' }], ['checkout_expire', { p_event_id: 'evt_x', p_session: 'cs_4' }]]);
+    expect(calls).toEqual([
+      ['checkout_expire', { p_event_id: 'evt_x', p_session: 'cs_3', p_order: ORDER }],
+      ['checkout_expire', { p_event_id: 'evt_x', p_session: 'cs_4', p_order: null }],
+    ]);
   });
   it('otros eventos se ignoran', async () => {
     calls.length = 0;

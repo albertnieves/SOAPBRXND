@@ -3,12 +3,15 @@
  * Supabase, la migración y la semilla. Una base nueva por prueba.
  */
 import { PGlite } from '@electric-sql/pglite';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { SEED } from '@/data/seed';
 import { seedSql } from '@/data/seed-sql';
 
-const MIGRATION = readFileSync(new URL('../../../supabase/migrations/20261115120000_tienda.sql', import.meta.url), 'utf8');
+// Todas las migraciones, en orden de fecha (como `supabase db push`).
+const MIGRATIONS_DIR = new URL('../../../supabase/migrations/', import.meta.url);
+const MIGRATION = readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort()
+  .map((f) => readFileSync(new URL(f, MIGRATIONS_DIR), 'utf8')).join('\n');
 
 export async function freshDb(): Promise<PGlite> {
   const db = new PGlite();

@@ -18,7 +18,8 @@ pnpm build && pnpm e2e   # extremo a extremo, escritorio y móvil
 | Fases de drop por fecha (anunciado, con llave, abierto, agotado, archivo) | `dropPhase` |
 | Fuente de datos: Supabase o semilla (modo demo) | `src/modules/catalog/source.ts` |
 | Semilla de ejemplo | `src/data/seed.ts` → `pnpm seed:sql` → `supabase/seed.sql` |
-| Base de datos, reservas y pagos | `supabase/migrations/20261115120000_tienda.sql` |
+| Base de datos, reservas y pagos | `supabase/migrations/` (en orden de fecha) |
+| Reglas del advisor de Supabase (RLS, permisos, índices) | `tests/unit/db/advisor.test.ts` |
 | Bolsa en cookie (`sbx_bolsa`, solo ids y cantidades) | `src/modules/checkout/cart.ts` |
 | Stripe Checkout + webhook | `src/modules/payments/` y `src/app/api/stripe/webhook` |
 | Mockups de pixel de cada pieza (silueta del soporte rellena con el arte) | `src/modules/catalog/mockup.ts` + `src/components/ProductArt.tsx` |
@@ -41,7 +42,7 @@ Reutilizado de L'Atelier (`adhara-web`): dinero en céntimos, bolsa en cookie, z
 
 ## Ponerla en marcha de verdad
 
-1. **Supabase:** crea un proyecto (región UE). En SQL Editor ejecuta `supabase/migrations/20261115120000_tienda.sql` y luego `supabase/seed.sql` (o tu catálogo real). Copia URL, `anon key` y `service_role key` a `.env.local` y a Vercel.
+1. **Supabase:** crea un proyecto (región UE). Aplica **todas** las migraciones de `supabase/migrations/` en orden de fecha (`supabase link` + `supabase db push`, o una a una en SQL Editor) y luego `supabase/seed.sql` (o tu catálogo real). Revisa *Advisors* en el panel: solo deben quedar los avisos informativos que lista `docs/EQUIPO.md`. Copia URL, `anon key` y `service_role key` a `.env.local` y a Vercel.
 2. **Stripe:** crea las claves (primero en modo test). En *Developers → Webhooks* añade `https://TU-DOMINIO/api/stripe/webhook` con los eventos `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` y `checkout.session.expired`. Copia el *signing secret* a `STRIPE_WEBHOOK_SECRET`.
    En local: `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 3. **Vercel:** proyecto con *Root Directory* = `web`, variables de `.env.example` y `CRON_SECRET`. El cron diario (`vercel.json`) marca como caducados los pedidos sin pagar; las reservas ya dejan de contar solas al vencer, y Stripe avisa de cada sesión caducada.

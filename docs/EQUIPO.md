@@ -51,7 +51,8 @@ Regla de oro: **precio, stock y totales los decide la base** (`checkout_create`,
 
 **Base de datos**
 - A partir de que exista el proyecto de Supabase de producción, **las migraciones no se editan**: cada cambio es un archivo nuevo en `supabase/migrations/` con fecha.
-- Cada función nueva: `security definer`, `set search_path = ''`, `revoke` a `public, anon, authenticated` y `grant` solo a `service_role`. Cada tabla nueva: RLS activado.
+- Cada función nueva: `security definer`, `set search_path = ''`, `revoke` a `public, anon, authenticated` y `grant` solo a `service_role`. Cada tabla nueva: RLS activado. Cada función nueva en `private`: `revoke all … from public` (Postgres le da permiso a todos por defecto). Cada clave foránea: su índice. Cada vista: `security_invoker`.
+- Esas reglas son las del **advisor de Supabase** y las comprueba `tests/unit/db/advisor.test.ts` en cada PR. Tras aplicar migraciones en un proyecto real, revisa también *Advisors* en el panel de Supabase. Avisos esperados (informativos, no se arreglan): `rls_enabled_no_policy` en `orders`, `order_lines`, `holds`, `stripe_events`, `waitlist` y `drop_keys` (a propósito: solo las toca `service_role`) y la exposición en GraphQL de las tablas del catálogo (son públicas).
 - Si cambias la semilla: `pnpm seed:sql` y se sube el `seed.sql` regenerado (hay una prueba que lo exige).
 
 **Pruebas**
@@ -142,10 +143,10 @@ Ordenadas por impacto. Cada una cabe en una PR.
 | 4 | Pasar la sala (`public/room/room.js`, ~1.100 líneas) a módulos TypeScript con pruebas | Hoy es JS plano sin tipos; cuesta tocarla sin romperla | Frontend |
 | 5 | Errores y avisos con Sentry (o similar) | Hoy los pedidos «a revisar» solo están en logs y correo | Backend |
 | 6 | Auditoría de accesibilidad con axe en los e2e | Foco, contraste y lectores de pantalla en ficha y checkout | Frontend |
-| 7 | Comprobación de moneda e identificar sesiones de Stripe por `metadata.order_id` | Más robusto ante eventos raros del webhook | Backend |
+| 7 | ✅ Comprobación de moneda e identificar sesiones de Stripe por `metadata.order_id` | Hecho en `20261116120000_advisor.sql`: si `checkout_attach_session` falla, el pago ya no se pierde como `unknown_session`; moneda ≠ EUR → `needs_attention` | Backend |
 | 8 | Prueba de concurrencia real (dos compras de la última unidad a la vez) contra un Postgres de verdad en la CI | PGlite es una sola conexión y no puede probar carreras | Backend |
 | 9 | Internacionalización (es/en) preparada en rutas | Si se vende fuera de España | Frontend |
-| 10 | Vista de catálogo con `security_invoker` y *grants* explícitos en `private` | Lo pide el linter de Supabase | Backend |
+| 10 | ✅ Vista de catálogo con `security_invoker` y *grants* explícitos en `private` | Hecho en `20261116120000_advisor.sql`, junto con los índices de 5 claves foráneas; lo vigila `tests/unit/db/advisor.test.ts` | Backend |
 
 ## 7. Primera semana de alguien nuevo
 
