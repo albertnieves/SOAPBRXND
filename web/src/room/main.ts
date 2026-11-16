@@ -527,7 +527,7 @@ export function mount(ROOT: HTMLElement): void {
       const away = sx < -24 || sx > VW + 24 || sy < 0 || sy > VH - BOTTOM + 60;
       const by = away ? VH - BOTTOM - 74 - off : Math.max(b.el.offsetHeight + 8, sy - 6 - off);
       b.el.classList.toggle('away', away);
-      b.el.style.transform = `translate(${Math.round(clamp(sx, half, VW - half))}px, ${Math.round(by)}px) translate(-50%, -100%)`;
+      b.el.style.transform = `translate(${Math.round(clamp(sx, half, Math.max(half, VW - half - (away ? 62 : 0))))}px, ${Math.round(by)}px) translate(-50%, -100%)`;
       stack.set(b.who, off + b.el.offsetHeight + 10);
     }
   }

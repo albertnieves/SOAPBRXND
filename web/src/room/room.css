@@ -45,6 +45,7 @@
   background: #17171b; clip-path: polygon(0 0, 100% 0, 50% 100%); }
 #lavanderia .say.fade { opacity: 0; }
 #lavanderia .say.away::after { display: none; }
+#lavanderia .say.away { max-width: min(260px, calc(100vw - 96px)); }
 #lavanderia .ftag { position: absolute; left: 0; top: 0; padding: 4px 7px 3px; background: #17171b; color: var(--paper);
   border: 2px solid var(--paper); border-radius: 4px; font-family: var(--px); font-size: 9px; line-height: 1.2; letter-spacing: .5px; white-space: nowrap; opacity: .92; }
 #lavanderia .ftag::after { content: ''; position: absolute; left: 50%; bottom: -7px; width: 8px; height: 5px; margin-left: -4px; background: var(--paper); clip-path: polygon(0 0, 100% 0, 50% 100%); }
