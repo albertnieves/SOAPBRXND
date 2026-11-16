@@ -1,3 +1,11 @@
 {
-  "crons": [{ "path": "/api/cron/liberar-reservas", "schedule": "17 4 * * *" }]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "crons": [
+    {
+      "path": "/api/cron/liberar-reservas",
+      "schedule": "17 4 * * *"
+    }
+  ]
 }
