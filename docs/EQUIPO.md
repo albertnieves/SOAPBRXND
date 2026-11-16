@@ -9,6 +9,7 @@ Este documento es el punto de partida para cualquiera que se sume. Explica qué 
 | `index.html` | Maqueta v0 de la web (agosto) | Referencia visual, no se toca |
 | `miniverso/` | Prototipo de la lavandería pixel en un solo HTML | Referencia; la versión viva está en `web/src/room/` |
 | `web/` | **La tienda real**: Next.js 16 + Supabase + Stripe + Resend | Fases A y B hechas, lista para poner en marcha |
+| `docs/LAVANDERIA.md` | La sala: qué se puede hacer, cómo está montada y cómo añadir muebles | Al día |
 | `docs/PLAN_ECOMMERCE.md` | Estrategia: qué tienda queremos y por qué | Decisiones del 15/11 marcadas |
 | `docs/plans/` | Planes por tareas ya ejecutados | Histórico |
 
