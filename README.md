@@ -23,7 +23,36 @@ Todos los recursos gráficos originales (logotipos, alfombrilla de entrada, etc.
 - El Drive es la **fuente original**: ahí se guardan los archivos a máxima calidad y editables.
 - En el repo solo entran las **versiones optimizadas para web**, dentro de `assets/`.
 - Si un recurso cambia en el Drive, se vuelve a exportar y se sustituye en `assets/`, manteniendo el mismo nombre de archivo siempre que se pueda.
-- El acceso al Drive es privado: pedid permiso a Dani si no lo tenéis.
+
+### Estructura del Drive y dónde va cada cosa
+
+```
+Recursos de Daniel/
+├── alfombrilla-07.png      → alfombrilla de entrada ("get nak*ed")   → pantalla de intro
+├── logotipo/
+│   └── logotipo .png       → emblema principal de la marca          → centro del hero
+├── portfolio/              → fotos de colecciones                   → (futuro) sección Archive
+│   ├── organic fusion/     → imágenes de la colección + prendas/
+│   ├── sweet temptation/   → imágenes de la colección + prendas/
+│   └── eva fabregas/       → (vacía de momento)
+├── assets/                 → (vacía de momento)
+├── neon/                   → (vacía de momento)
+└── PAUTAS                  → documento de pautas de marca (vacío de momento)
+```
+
+| Recurso en Drive | Archivo en el repo | Dónde se usa | Color de exportación |
+|---|---|---|---|
+| `alfombrilla-07.png` | `assets/brand/alfombrilla.webp` | `#intro-logo` (pantalla de carga) | `--white` `#f2f0eb` |
+| `logotipo/logotipo .png` | `assets/brand/logotipo.webp` | `.hero-emblem` (dentro de los anillos del hero) | `--accent` `#e8e0d0` |
+
+**Cómo se exportan** (los originales son siluetas negras sobre transparente de ~6000–8000 px, invisibles sobre el fondo negro de la web):
+
+1. Recortar el margen transparente sobrante.
+2. Redimensionar a tamaño web @2x: alfombrilla a 1800 px de ancho, logotipo a 1000 px de alto.
+3. Recolorear la silueta al color de la paleta indicado en la tabla.
+4. Guardar como WebP sin pérdida (con transparencia).
+
+Si cambia la paleta en `:root`, hay que volver a exportar estas dos imágenes con el color nuevo. Lo ideal a medio plazo es tener los originales en **vector (SVG)** para no depender de la exportación.
 
 ---
 

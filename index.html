@@ -74,15 +74,14 @@
     flex-direction: column;
     gap: 0;
   }
+  /* Alfombrilla de entrada — assets/brand/alfombrilla.webp (color --white) */
   #intro-logo {
-    font-family: var(--font-display);
-    font-size: clamp(52px, 10vw, 120px);
-    letter-spacing: 0.12em;
-    color: var(--white);
+    display: block;
+    width: min(82vw, 760px);
+    height: auto;
     opacity: 0;
     transform: translateY(24px);
     animation: introReveal 0.8s cubic-bezier(0.22,1,0.36,1) 0.3s forwards;
-    text-align: center;
   }
   #intro-sub {
     font-family: var(--font-mono);
@@ -92,7 +91,7 @@
     text-transform: uppercase;
     opacity: 0;
     animation: introReveal 0.6s ease 0.9s forwards;
-    margin-top: 12px;
+    margin-top: 28px;
   }
   #intro-line {
     width: 0;
@@ -240,6 +239,25 @@
     inset: 0;
     background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.01) 2px, rgba(255,255,255,0.01) 4px);
     pointer-events: none;
+  }
+
+  /* Logotipo central — assets/brand/logotipo.webp (color --accent) */
+  .hero-emblem {
+    position: absolute;
+    top: 50%;
+    /* mismo centro que .hero-ring: right 8% + medio diámetro */
+    right: calc(8% + min(50vw, 520px) / 2);
+    transform: translate(50%, -50%);
+    height: min(38vw, 380px);
+    width: auto;
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    animation: emblemReveal 1.4s cubic-bezier(0.22,1,0.36,1) 2.5s forwards;
+  }
+  @keyframes emblemReveal {
+    from { opacity: 0; filter: blur(12px); }
+    to { opacity: 0.9; filter: blur(0); }
   }
 
   @keyframes orbFloat {
@@ -1060,6 +1078,8 @@
     .divider { margin: 0 24px; }
     #hero { padding: 0 24px 60px; }
     .hero-scroll { display: none; }
+    .hero-emblem { height: min(70vw, 340px); right: 50%; top: 28%; }
+    @keyframes emblemReveal { to { opacity: 0.18; filter: blur(0); } }
     #about { grid-template-columns: 1fr; gap: 40px; }
     .about-right { border-left: none; padding-left: 0; border-top: 1px solid var(--gray-2); padding-top: 40px; }
     .portfolio-grid { grid-template-columns: 1fr 1fr; }
@@ -1133,7 +1153,7 @@
 
 <!-- Intro -->
 <div id="intro">
-  <div id="intro-logo">SOAPBRXAND</div>
+  <img id="intro-logo" src="assets/brand/alfombrilla.webp" width="1800" height="621" alt="get nak*ed" decoding="async">
   <div id="intro-sub">Dani R. — Creative Universe</div>
   <div id="intro-counter" id="intro-counter">001</div>
   <div id="intro-line"></div>
@@ -1169,6 +1189,7 @@
     <div class="hero-orb"></div>
     <div class="hero-ring"></div>
     <div class="hero-ring-2"></div>
+    <img class="hero-emblem" src="assets/brand/logotipo.webp" width="817" height="1000" alt="Logotipo de SOAPBRXAND" draggable="false">
     <div class="hero-scanlines"></div>
   </div>
   <div class="hero-content">
