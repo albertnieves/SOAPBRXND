@@ -4,7 +4,7 @@
  */
 import type { RoomArtwork, RoomData, RoomItem, RoomWasher } from '@/modules/catalog/room';
 import { artTone, drawPiece, patternFill, repFor } from './art';
-import { drawBrand, type Brand } from './brand';
+import { drawBrand, type Brand, type BrandArt } from './brand';
 import { IRI } from './chars';
 import {
   box, COLS, cyl, ellipse, FONT_PX, FONT_SANS, hull, INK, lgrad, litFace, mix, onFloor, onX, onY, P, poly, rgrad, rng, ROWS, rrect, seg,
@@ -229,6 +229,28 @@ function drawFloor(g: G) {
   poly(g, floor, null, INK, 1.5);
 }
 
+/**
+ * El logotipo pintado en la alfombra: va en el plano del suelo y alineado con las baldosas (como el felpudo),
+ * así que la perspectiva lo deforma igual que al resto del suelo. Se mezcla con el tejido y deja ver la trama.
+ */
+function paintedLogo(g: G, art: BrandArt) {
+  g.save();
+  g.beginPath(); g.arc(0, 0, 50, 0, TAU); g.clip();
+  g.rotate(LOGO_TURN);
+  g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.88;
+  drawBrand(g, art, '#1d1b22', 0, 0, 70, 84);
+  // la trama del tejido asoma por encima de la pintura
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  g.strokeStyle = 'rgba(232,224,208,.09)'; g.lineWidth = 0.7;
+  for (let v = -50; v <= 50; v += 3) { g.beginPath(); g.moveTo(-50, v); g.lineTo(50, v); g.stroke(); }
+  const r = rng(23);
+  g.fillStyle = 'rgba(232,224,208,.35)';
+  for (let i = 0; i < 90; i++) g.fillRect(-46 + r() * 92, -46 + r() * 92, 0.8 + r() * 1.6, 0.6);
+  g.restore();
+}
+/** 0: la parte de arriba del logotipo mira a la pared del fondo (rótulo y mostrador). */
+const LOGO_TURN = 0;
+
 function drawRugs(g: G, brand: Brand | null | undefined) {
   // alfombra redonda con el logotipo en el centro
   onFloor(g, 5.6, 3.6, 0, () => {
@@ -236,11 +258,8 @@ function drawRugs(g: G, brand: Brand | null | undefined) {
     ellipse(g, 0, 0, 71, 71, C.cream);
     ellipse(g, 0, 0, 60, 60, null, '#17171b', 3);
     ellipse(g, 0, 0, 52, 52, null, C.lilac, 1.4);
-    // girado 45° para que quede derecho en pantalla
-    g.save(); g.rotate(-Math.PI / 4);
-    if (brand?.logotipo) drawBrand(g, brand.logotipo, '#17171b', 0, 0, 66, 80);
-    else label(g, 'SBX', 0, 2, '#17171b', 700, 44, 86);
-    g.restore();
+    if (brand?.logotipo) paintedLogo(g, brand.logotipo);
+    else { g.save(); g.rotate(-Math.PI / 4); label(g, 'SBX', 0, 2, '#17171b', 700, 44, 86); g.restore(); }
     [[-34, -30, 7], [36, 28, 5], [30, -36, 3.5]].forEach(([x, y, rad], i) => ellipse(g, x!, y!, rad!, rad!, null, IRI[i]!, 2));
     for (let a = 0; a < 40; a++) { const an = (a / 40) * TAU; seg(g, [Math.cos(an) * 78, Math.sin(an) * 78], [Math.cos(an) * 84, Math.sin(an) * 84], 'rgba(23,23,27,.65)', 1.4); }
   });

@@ -101,7 +101,7 @@ Casi todo se dibuja por código, salvo dos gráficos de marca que vienen del [Dr
 | Original en el Drive | Archivo servido | Dónde sale | Color |
 |---|---|---|---|
 | `alfombrilla-07.png` | `web/public/marca/alfombrilla.webp` | Felpudo de la puerta («get nak*ed») | crema `C.cream` |
-| `logotipo/logotipo .png` | `web/public/marca/logotipo.webp` | Centro de la alfombra redonda | tinta `#17171b` |
+| `logotipo/logotipo .png` | `web/public/marca/logotipo.webp` | Pintado en el centro de la alfombra redonda, en el plano del suelo y alineado con las baldosas (`paintedLogo` en `scene.ts`) | tinta `#1d1b22` |
 
 - `web/src/room/brand.ts` los carga a la vez que `GET /api/room` y los deja en `env.brand`; `drawRugs()` en `scene.ts` los pinta en el suelo.
 - Los archivos son **siluetas** (blanco + transparencia): el color lo pone la escena con `drawBrand(g, arte, color, …)`. Cambiar el color es tocar el código, no volver a exportar.
