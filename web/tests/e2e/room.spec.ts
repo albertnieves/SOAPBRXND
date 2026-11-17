@@ -11,6 +11,15 @@ test('la lavandería pinta la sala con el catálogo de la API', async ({ page })
   expect(washers).toBe(3);
 });
 
+test('la alfombrilla y el logotipo de marca se cargan en la sala', async ({ page }) => {
+  const brand = await page.evaluate(() => {
+    const b = (window as unknown as { __sbx: { env: { brand?: { alfombrilla: { w: number } | null; logotipo: { w: number } | null } | null } } }).__sbx.env.brand;
+    return { alfombrilla: b?.alfombrilla?.w ?? 0, logotipo: b?.logotipo?.w ?? 0 };
+  });
+  expect(brand.alfombrilla).toBeGreaterThan(0);
+  expect(brand.logotipo).toBeGreaterThan(0);
+});
+
 test('PRODUCTOS lista las piezas con enlace a su ficha', async ({ page }) => {
   await page.getByRole('button', { name: 'PRODUCTOS' }).click();
   const tee = page.locator('#lavanderia a.card[href="/p/tee-pompa-repeat"]');

@@ -9,6 +9,7 @@ import { icon, pieceURL, swatchURL } from './art';
 import { DEFAULT_OUTFIT, drawDaniel, drawPompa, drawRumbi, drawShadow, EMOTE_TIME, FACES, IRI, MOODS, POSE, SKINS, type Emote, type Outfit, type Pose } from './chars';
 import { clamp, COLS, ellipse, esc, P, poly, put, rgrad, ROWS, store, TAU, unproject, zFace, type G } from './core';
 import { bagCount, danielReply, daylight, euro, findPath, isMoveKey, keyStep, nearestFree, opensLabel, PHASE_LABEL, washerStatus, type Tile } from './logic';
+import { loadBrand } from './brand';
 import { buildScene, hits, SOCK_SPOTS, type Env, type Item, type Scene } from './scene';
 
 const BRAND = 'SOAPBRXND';
@@ -426,6 +427,8 @@ export function mount(ROOT: HTMLElement): () => void {
       g.beginPath(); g.arc(0, 0, l.rx, 0, TAU); g.fill();
       g.restore();
     }
+    g.globalAlpha = env.lightsOn ? 0.3 : 0.8;
+    for (const it of scene.items) if (it.glow) put(g, it.glow);
     g.restore();
   }
 
@@ -1037,9 +1040,10 @@ export function mount(ROOT: HTMLElement): () => void {
     ? Promise.race([Promise.all([document.fonts.load('700 20px "Familjen Grotesk"'), document.fonts.load('700 10px Silkscreen'), document.fonts.load('400 10px Silkscreen')]), new Promise((r) => setTimeout(r, 2500))])
     : Promise.resolve();
   const enter = $<HTMLButtonElement>('#enter');
-  Promise.all([fetch('/api/room').then((r) => { if (!r.ok) throw new Error('room'); return r.json() as Promise<RoomData>; }), fonts.catch(() => null)]).then(([data]) => {
+  Promise.all([fetch('/api/room').then((r) => { if (!r.ok) throw new Error('room'); return r.json() as Promise<RoomData>; }), fonts.catch(() => null), loadBrand()]).then(([data, , brand]) => {
     if (gone) return;
     DATA = data;
+    env.brand = brand;
     reviveOutfit();
     resize(false);
     rebuild();

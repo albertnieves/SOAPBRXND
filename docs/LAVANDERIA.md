@@ -94,6 +94,21 @@ Es un `<canvas>` dibujado con trazos vectoriales a la resolución de la pantalla
 - **Luz**: con la luz de ambiente se oscurece la sala y se suman focos de luz (`lights` en la escena).
 - **Movimiento reducido**: si el sistema lo pide (`prefers-reduced-motion`), se quitan las animaciones decorativas.
 
+### Recursos de marca
+
+Casi todo se dibuja por código, salvo dos gráficos de marca que vienen del [Drive de Daniel](https://drive.google.com/drive/folders/1arHdh-M6kDr9UveVCHkBmZKq6DQZDQgN):
+
+| Original en el Drive | Archivo servido | Dónde sale | Color |
+|---|---|---|---|
+| `alfombrilla-07.png` | `web/public/marca/alfombrilla.webp` | Felpudo de la puerta («get nak*ed») | crema `C.cream` |
+| `logotipo/logotipo .png` | `web/public/marca/logotipo.webp` | Pintado en el centro de la alfombra redonda, en el plano del suelo y alineado con las baldosas (`paintedLogo` en `scene.ts`) | tinta `#1d1b22` |
+
+- `web/src/room/brand.ts` los carga a la vez que `GET /api/room` y los deja en `env.brand`; `drawRugs()` en `scene.ts` los pinta en el suelo.
+- Los archivos son **siluetas** (blanco + transparencia): el color lo pone la escena con `drawBrand(g, arte, color, …)`. Cambiar el color es tocar el código, no volver a exportar.
+- Si alguno no carga, la sala arranca igual y dibuja lo de antes (`HOLA` en el felpudo, `SBX` en la alfombra).
+
+**Para actualizar uno:** desde el original del Drive, recortar el margen transparente, redimensionar (alfombrilla a 720 px de ancho, logotipo a 480 px de alto: sobra para el zoom máximo), dejarlo en blanco conservando la transparencia y guardarlo como WebP sin pérdida con el mismo nombre en `web/public/marca/`.
+
 ### Montar y desmontar
 
 `mount(ROOT)` en `main.ts` devuelve una función que desmonta la sala; `Room.tsx` la llama al salir de la portada sin recargar (por ejemplo, con el botón de volver). Mientras la sala está montada:
@@ -154,6 +169,7 @@ No hay que tocar la sala: sale del catálogo. Si el soporte de la pieza es una p
 |---|---|---|
 | Caminos, teclado, bolsa, hora, Daniel | `tests/unit/room-logic.test.ts` | `pnpm test` |
 | Datos que recibe la sala | `tests/unit/catalog-view.test.ts` (bloque `roomData`) | `pnpm test` |
+| Alfombrilla y logotipo cargados | `tests/e2e/room.spec.ts` | `pnpm build && pnpm e2e` |
 | `POST /api/bolsa`: reglas de stock, drop, topes y formato | `tests/unit/bag-route.test.ts` | `pnpm test` |
 | La sala en el navegador, escritorio y móvil | `tests/e2e/room.spec.ts` | `pnpm build && pnpm e2e` |
 | Montar y desmontar la sala, foco, fallo al cargar | `tests/e2e/room-lifecycle.spec.ts` | `pnpm build && pnpm e2e` |

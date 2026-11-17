@@ -29,6 +29,26 @@ Universo creativo y tienda de **Dani R.** — drops, identidad visual y lanzamie
 | Footer con redes | ✅ links vacíos |
 | Responsive móvil / tablet / desktop | ✅ |
 
+## Recursos de diseño (Drive de Daniel)
+
+📁 **[Recursos de Daniel — Google Drive](https://drive.google.com/drive/folders/1arHdh-M6kDr9UveVCHkBmZKq6DQZDQgN)** — fuente original de los gráficos de marca, a máxima calidad. En el repo solo entran versiones optimizadas para web.
+
+```
+Recursos de Daniel/
+├── alfombrilla-07.png   «get nak*ed» caligráfico   → felpudo de la puerta de la lavandería
+├── logotipo/
+│   └── logotipo .png    emblema de la marca        → alfombra redonda del centro de la lavandería
+├── portfolio/           fotos por colección         → (pendiente) fotos de artes y piezas, Fase E
+│   ├── organic fusion/    imágenes + prendas/
+│   ├── sweet temptation/  imágenes + prendas/
+│   └── eva fabregas/      (vacía)
+├── assets/              (vacía)
+├── neon/                (vacía)
+└── PAUTAS               documento de pautas de marca (vacío)
+```
+
+Dónde está cada recurso en el código y cómo se exporta: [`docs/LAVANDERIA.md` → Recursos de marca](docs/LAVANDERIA.md#recursos-de-marca).
+
 ## Tienda real (`web/`) — fases A y B
 
 App Next.js con catálogo en Supabase, bolsa, checkout con **Stripe** y la lavandería pixel como portada. Sin claves arranca en modo demo. Cómo arrancarla y ponerla en producción: [`web/README.md`](web/README.md). Plan ejecutado: [`docs/plans/2026-11-15-tienda-real-fase-a-b.md`](docs/plans/2026-11-15-tienda-real-fase-a-b.md).

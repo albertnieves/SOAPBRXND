@@ -4,14 +4,16 @@
  */
 import type { RoomArtwork, RoomData, RoomItem, RoomWasher } from '@/modules/catalog/room';
 import { artTone, drawPiece, patternFill, repFor } from './art';
+import { drawBrand, type Brand, type BrandArt } from './brand';
 import { IRI } from './chars';
+import { NEON_BOX, NEON_PATHS } from './neon';
 import {
   box, COLS, cyl, ellipse, FONT_PX, FONT_SANS, hull, INK, lgrad, litFace, mix, onFloor, onX, onY, P, poly, rgrad, rng, ROWS, rrect, seg,
   shade, sprite, TAU, TH, TILE_BAND, TW, vgrad, WALL, xFace, yFace, zFace, type G, type Pt, type Sprite,
 } from './core';
 import { PHASE_LABEL, washerStatus, type Daylight, type Tile } from './logic';
 
-export type Env = { lightsOn: boolean; sky: Daylight; res: number; socks: readonly number[] };
+export type Env = { lightsOn: boolean; sky: Daylight; res: number; socks: readonly number[]; brand?: Brand | null };
 export type Light = { x: number; y: number; rx: number; ry: number; color: string; on: number; off: number; flicker?: boolean };
 export type Item = {
   id: string;
@@ -32,6 +34,8 @@ export type Item = {
   bias?: number;
   shadow?: boolean;
   mask?: { w: number; h: number; k: number; a: Uint8Array };
+  /** Capa que emite luz (neón): se suma encima del tinte de la sala. */
+  glow?: Sprite;
 };
 export type Scene = {
   bg: Sprite; items: Item[]; lights: Light[]; clip: Pt[]; blocked: Set<string>;
@@ -87,7 +91,7 @@ function sky(g: G, w: number, h: number, light: Daylight) {
   }
 }
 
-function drawWalls(g: G, env: Env, data: RoomData) {
+function drawWalls(g: G, env: Env) {
   const r = rng(11), RW = COLS * TW, LW2 = ROWS * TW, bandTop = WALL - TILE_BAND;
   const wall = (w: number, base: string, grout: string, tile: string) => {
     g.fillStyle = vgrad(g, 0, bandTop, [[0, shade(base, -0.28)], [1, base]]); g.fillRect(0, 0, w, bandTop);
@@ -111,9 +115,9 @@ function drawWalls(g: G, env: Env, data: RoomData) {
     wall(RW, C.wallR, C.grout, C.tile);
     g.fillStyle = lgrad(g, 0, 0, 70, 0, [[0, 'rgba(0,0,0,.34)'], [1, 'rgba(0,0,0,0)']]); g.fillRect(0, 0, 70, WALL);
     // tubería
-    g.fillStyle = vgrad(g, 12, 19, [[0, '#b9b9c4'], [0.5, '#7b7b88'], [1, '#3f3f49']]); g.fillRect(8, 12, RW - 8, 7);
-    g.strokeStyle = INK; g.lineWidth = 1; g.strokeRect(8, 12, RW - 8, 7);
-    for (let u = 44; u < RW; u += 96) { g.fillStyle = '#5b5b66'; g.fillRect(u, 9, 6, 13); g.strokeRect(u, 9, 6, 13); }
+    g.fillStyle = vgrad(g, 5, 12, [[0, '#b9b9c4'], [0.5, '#7b7b88'], [1, '#3f3f49']]); g.fillRect(8, 5, RW - 8, 7);
+    g.strokeStyle = INK; g.lineWidth = 1; g.strokeRect(8, 5, RW - 8, 7);
+    for (let u = 44; u < RW; u += 96) { g.fillStyle = '#5b5b66'; g.fillRect(u, 2, 6, 13); g.strokeRect(u, 2, 6, 13); }
     // rótulo de letras retroiluminadas
     const cx = 1.05 * TW + (3.9 * TW) / 2;
     g.save();
@@ -135,42 +139,11 @@ function drawWalls(g: G, env: Env, data: RoomData) {
     g.fillStyle = C.cream; g.fillRect(wx + ww / 2 - 1.5, wy, 3, wh); g.fillRect(wx, wy + wh * 0.42, ww, 3);
     g.strokeStyle = INK; g.lineWidth = 1.5; g.strokeRect(wx - 4, wy - 4, ww + 8, wh + 8); g.strokeRect(wx, wy, ww, wh);
     g.fillStyle = C.cream; g.fillRect(wx - 8, wy + wh + 4, ww + 16, 5); g.strokeRect(wx - 8, wy + wh + 4, ww + 16, 5);
-    // estantes de detrás del mostrador
-    const sx = 8.35 * TW, sw = 3.4 * TW;
-    [70, 116].forEach((v, row) => {
-      const rr = rng(40 + row);
-      let u = sx + 6;
-      while (u < sx + sw - 16) {
-        const it = data.items[Math.floor(rr() * Math.max(1, data.items.length))];
-        const kind = rr();
-        if (kind < 0.55 && it) { // pila de prendas dobladas
-          const n = 2 + Math.floor(rr() * 3), bw = 20;
-          for (let i = 0; i < n; i++) {
-            const piece = data.items[(Math.floor(rr() * 97) + i) % data.items.length]!;
-            rrect(g, u, v - 6 - i * 6, bw, 6, 2); g.fillStyle = patternFill(g, piece.pattern, 7); g.fill();
-            g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(u + bw - 5, v - 6 - i * 6, 5, 6); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
-          }
-          u += bw + 7;
-        } else if (kind < 0.8) { // caja de detergente
-          const bh = 16 + rr() * 8, col = [C.lilac, '#f4b8c9', C.neon, '#ffd36b'][Math.floor(rr() * 4)]!;
-          g.fillStyle = col; g.fillRect(u, v - bh, 13, bh); g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(u + 2, v - bh + 4, 9, 5);
-          g.strokeStyle = INK; g.lineWidth = 1; g.strokeRect(u, v - bh, 13, bh); u += 18;
-        } else { // botella
-          const col = [C.neon, '#f4b8c9', '#8ff0a4'][Math.floor(rr() * 3)]!;
-          rrect(g, u, v - 17, 9, 17, 2.5); g.fillStyle = col; g.fill(); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
-          g.fillStyle = INK; g.fillRect(u + 2.5, v - 21, 4, 4); u += 14;
-        }
-      }
-      g.fillStyle = vgrad(g, v, v + 5, [[0, C.wood], [1, C.woodD]]); g.fillRect(sx, v, sw, 5);
-      g.strokeStyle = INK; g.lineWidth = 1.2; g.strokeRect(sx, v, sw, 5);
-      g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(sx + 2, v + 5, sw, 4);
-      [sx + 14, sx + sw - 20].forEach((bx) => { g.fillStyle = '#3a3a42'; g.beginPath(); g.moveTo(bx, v + 5); g.lineTo(bx + 6, v + 5); g.lineTo(bx, v + 15); g.closePath(); g.fill(); });
-    });
-    // pizarra de tarifas
-    const px = 7.12 * TW;
-    g.fillStyle = '#17171b'; g.fillRect(px, 28, 46, 30); g.strokeStyle = C.warm; g.lineWidth = 1.5; g.strokeRect(px, 28, 46, 30);
-    label(g, 'TALLAS', px + 23, 36, '#f2f0eb', 700, 7, 40, FONT_PX);
-    label(g, 'S · M · L · XL', px + 23, 47, C.neon, 400, 6.5, 40, FONT_PX);
+    // pizarra de tallas, detrás del mostrador y debajo del neón
+    const px = 10.7 * TW, py = 104;
+    g.fillStyle = '#17171b'; g.fillRect(px, py, 46, 30); g.strokeStyle = C.warm; g.lineWidth = 1.5; g.strokeRect(px, py, 46, 30);
+    label(g, 'TALLAS', px + 23, py + 8, '#f2f0eb', 700, 7, 40, FONT_PX);
+    label(g, 'S · M · L · XL', px + 23, py + 19, C.neon, 400, 6.5, 40, FONT_PX);
   });
   onX(g, 0, ROWS, WALL, () => {
     wall(LW2, C.wallL, shade(C.grout, -0.08), shade(C.tile, -0.07));
@@ -228,25 +201,50 @@ function drawFloor(g: G) {
   poly(g, floor, null, INK, 1.5);
 }
 
-function drawRugs(g: G) {
-  // alfombra redonda
+/**
+ * El logotipo pintado en la alfombra: va en el plano del suelo y alineado con las baldosas (como el felpudo),
+ * así que la perspectiva lo deforma igual que al resto del suelo. Se mezcla con el tejido y deja ver la trama.
+ */
+function paintedLogo(g: G, art: BrandArt) {
+  g.save();
+  g.beginPath(); g.arc(0, 0, 50, 0, TAU); g.clip();
+  g.rotate(LOGO_TURN);
+  g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.88;
+  drawBrand(g, art, '#1d1b22', 0, 0, 70, 84);
+  // la trama del tejido asoma por encima de la pintura
+  g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+  g.strokeStyle = 'rgba(232,224,208,.09)'; g.lineWidth = 0.7;
+  for (let v = -50; v <= 50; v += 3) { g.beginPath(); g.moveTo(-50, v); g.lineTo(50, v); g.stroke(); }
+  const r = rng(23);
+  g.fillStyle = 'rgba(232,224,208,.35)';
+  for (let i = 0; i < 90; i++) g.fillRect(-46 + r() * 92, -46 + r() * 92, 0.8 + r() * 1.6, 0.6);
+  g.restore();
+}
+/** 0: la parte de arriba del logotipo mira a la pared del fondo (rótulo y mostrador). */
+const LOGO_TURN = 0;
+
+function drawRugs(g: G, brand: Brand | null | undefined) {
+  // alfombra redonda con el logotipo en el centro
   onFloor(g, 5.6, 3.6, 0, () => {
     ellipse(g, 0, 0, 78, 78, '#17171b', INK, 1.5);
     ellipse(g, 0, 0, 71, 71, C.cream);
     ellipse(g, 0, 0, 60, 60, null, '#17171b', 3);
     ellipse(g, 0, 0, 52, 52, null, C.lilac, 1.4);
-    g.save(); g.rotate(-Math.PI / 4);
-    label(g, 'SBX', 0, 2, '#17171b', 700, 44, 86);
-    g.restore();
+    if (brand?.logotipo) paintedLogo(g, brand.logotipo);
+    else { g.save(); g.rotate(-Math.PI / 4); label(g, 'SBX', 0, 2, '#17171b', 700, 44, 86); g.restore(); }
     [[-34, -30, 7], [36, 28, 5], [30, -36, 3.5]].forEach(([x, y, rad], i) => ellipse(g, x!, y!, rad!, rad!, null, IRI[i]!, 2));
     for (let a = 0; a < 40; a++) { const an = (a / 40) * TAU; seg(g, [Math.cos(an) * 78, Math.sin(an) * 78], [Math.cos(an) * 84, Math.sin(an) * 84], 'rgba(23,23,27,.65)', 1.4); }
   });
-  // felpudo de la puerta
-  onFloor(g, 0.12, 7.72, 0, () => {
-    rrect(g, 0, 0, 42, 56, 3); g.fillStyle = '#3a2f26'; g.fill(); g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke();
+  // felpudo de la puerta: la alfombrilla «get nak*ed», leída al entrar (paralela a la puerta)
+  const [mw, ml] = brand?.alfombrilla ? [44, 66] : [42, 56];
+  onFloor(g, 0.12, 8.3 - ml / TW / 2, 0, () => {
+    rrect(g, 0, 0, mw, ml, 3); g.fillStyle = '#3a2f26'; g.fill(); g.strokeStyle = INK; g.lineWidth = 1.5; g.stroke();
     g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 1;
-    for (let v = 5; v < 56; v += 4) { g.beginPath(); g.moveTo(3, v); g.lineTo(39, v); g.stroke(); }
-    g.save(); g.translate(21, 28); g.rotate(-Math.PI / 2); label(g, 'HOLA', 0, 0, C.cream, 700, 15, 46); g.restore();
+    for (let v = 5; v < ml; v += 4) { g.beginPath(); g.moveTo(3, v); g.lineTo(mw - 3, v); g.stroke(); }
+    g.save(); g.translate(mw / 2, ml / 2); g.rotate(-Math.PI / 2);
+    if (brand?.alfombrilla) drawBrand(g, brand.alfombrilla, C.cream, 0, 0, ml - 8, mw - 10);
+    else label(g, 'HOLA', 0, 0, C.cream, 700, 15, 46);
+    g.restore();
   });
 }
 
@@ -328,15 +326,48 @@ function build(env: Env, data: RoomData): { items: Item[]; lights: Light[]; seat
   });
   { const [x, y] = P(0.4, 8.3, 150); lights.push({ x, y, rx: 70, ry: 60, color: '#8ff0a4', on: 0.05, off: 0.16 }); }
 
-  /* --- pared derecha: reloj --- */
-  const clock = rightWall({ id: 'clock', box: [7.3, 0, 7.9, 0.02] }, 7.34, 7.94, 174, 204, (g, w, h) => {
+  /* --- pared derecha: neón rojo detrás de Daniel --- */
+  {
+    const RED = '#ff2338', x0 = 7.12, x1 = 11.94, z0 = 159, z1 = 236;
+    const paths = typeof Path2D === 'undefined' ? [] : NEON_PATHS.map((d) => new Path2D(d));
+    /** Coloca el lettering centrado en la placa y llama a `fn` en unidades del SVG. */
+    const inPlate = (g: G, w: number, h: number, fn: (s: number) => void) => {
+      const [bx, by, bw, bh] = NEON_BOX, s = Math.min((w - 10) / bw, (h - 7) / bh);
+      g.save(); g.translate((w - bw * s) / 2 - bx * s, (h - bh * s) / 2 - by * s); g.scale(s, s);
+      g.lineJoin = 'round'; g.lineCap = 'round'; fn(s); g.restore();
+    };
+    const tubes = (g: G, s: number) => {
+      glow(g, RED, 14); g.strokeStyle = 'rgba(255,35,56,.5)'; g.lineWidth = 2.2 / s; paths.forEach((p) => g.stroke(p));
+      glow(g, RED, 5); g.fillStyle = RED; g.strokeStyle = RED; g.lineWidth = 1.1 / s; paths.forEach((p) => { g.stroke(p); g.fill(p); });
+      g.shadowBlur = 0; g.fillStyle = '#ffb3ba'; paths.forEach((p) => g.fill(p));
+    };
+    const sign = rightWall({ id: 'neon-frase', box: [x0, 0, x1, 0.02] }, x0, x1, z0, z1, (g, w, h) => {
+      // placa de metacrilato con sus cuatro tornillos
+      rrect(g, 1, 1, w - 2, h - 2, 5); g.fillStyle = 'rgba(255,255,255,.035)'; g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.14)'; g.lineWidth = 1; g.stroke();
+      [[6, 6], [w - 6, 6], [6, h - 6], [w - 6, h - 6]].forEach(([x, y]) => ellipse(g, x!, y!, 1.6, 1.6, '#c9c9d2', INK, 0.6));
+      inPlate(g, w, h, (s) => {
+        g.save(); g.translate(1.4 / s, 2 / s); g.fillStyle = 'rgba(0,0,0,.45)'; paths.forEach((p) => g.fill(p)); g.restore(); // sombra del tubo
+        tubes(g, s);
+      });
+    });
+    // los tubos dan luz propia: se vuelven a sumar después del tinte de la sala
+    const w = (x1 - x0) * TW, h = z1 - z0, b = sign.spr;
+    sign.glow = sprite(b.x, b.y, b.x + b.w, b.y + b.h, env.res, (g) => onY(g, x0, 0, z1, () => inPlate(g, w, h, (s) => tubes(g, s))));
+    const [lx, ly] = P(9.6, 0.3, 190);
+    lights.push({ x: lx, y: ly, rx: 210, ry: 95, color: RED, on: 0.07, off: 0.22 });
+  }
+
+  /* --- pared del fondo: reloj, en la esquina junto al vestidor --- */
+  const CK = 0.34, CZ = 176;
+  const clock = rightWall({ id: 'clock', box: [CK - 0.04, 0, CK + 0.56, 0.02] }, CK, CK + 0.6, CZ - 30, CZ, (g, w, h) => {
     ellipse(g, w / 2 + 1.5, h / 2 + 2, 14, 14, 'rgba(0,0,0,.35)');
     ellipse(g, w / 2, h / 2, 14, 14, '#f7f5f0', INK, 2);
     for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; seg(g, [w / 2 + Math.cos(a) * 10.5, h / 2 + Math.sin(a) * 10.5], [w / 2 + Math.cos(a) * 12, h / 2 + Math.sin(a) * 12], INK, i % 3 ? 0.8 : 1.6); }
   });
   clock.live = (g) => {
     const d = new Date(), hh = ((d.getHours() % 12) + d.getMinutes() / 60) / 12, mm = (d.getMinutes() + d.getSeconds() / 60) / 60, ss = d.getSeconds() / 60;
-    onY(g, 7.34, 0, 204, () => {
+    onY(g, CK, 0, CZ, () => {
       const cx = 0.3 * TW, cy = 15;
       const hand = (f: number, len: number, col: string, lw: number) => { const a = f * TAU - Math.PI / 2; seg(g, [cx, cy], [cx + Math.cos(a) * len, cy + Math.sin(a) * len], col, lw); };
       hand(hh, 6, INK, 2); hand(mm, 9.5, INK, 1.4); hand(ss, 10.5, '#d93f44', 0.8);
@@ -684,9 +715,9 @@ export function buildScene(data: RoomData, env: Env): Scene {
   const { items, lights, seats } = build(env, data);
   const x0 = P(0, ROWS)[0] - 24, x1 = P(COLS, 0)[0] + 24, y0 = -WALL - 24, y1 = (COLS + ROWS) * TH + 30;
   const bg = sprite(x0, y0, x1, y1, env.res, (g) => {
-    drawWalls(g, env, data);
+    drawWalls(g, env);
     drawFloor(g);
-    drawRugs(g);
+    drawRugs(g, env.brand);
     // sombras de contacto: la luz viene del fondo izquierdo
     g.save(); poly(g, zFace(0, 0, COLS, ROWS, 0)); g.clip();
     items.filter((i) => !i.wall && i.shadow !== false).forEach((i) => {
