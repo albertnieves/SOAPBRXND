@@ -14,6 +14,19 @@ Universo creativo y tienda de **Dani R.** — drops, identidad visual y lanzamie
 
 ---
 
+## Recursos de diseño (Drive de Daniel)
+
+Todos los recursos gráficos originales (logotipos, alfombrilla de entrada, etc.) viven en el Drive de Daniel:
+
+📁 **[Recursos de Daniel — Google Drive](https://drive.google.com/drive/folders/1arHdh-M6kDr9UveVCHkBmZKq6DQZDQgN)**
+
+- El Drive es la **fuente original**: ahí se guardan los archivos a máxima calidad y editables.
+- En el repo solo entran las **versiones optimizadas para web**, dentro de `assets/`.
+- Si un recurso cambia en el Drive, se vuelve a exportar y se sustituye en `assets/`, manteniendo el mismo nombre de archivo siempre que se pueda.
+- El acceso al Drive es privado: pedid permiso a Dani si no lo tenéis.
+
+---
+
 ## Trabajo realizado (maqueta v0)
 
 | Sección | Estado |
