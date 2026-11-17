@@ -426,6 +426,8 @@ export function mount(ROOT: HTMLElement): () => void {
       g.beginPath(); g.arc(0, 0, l.rx, 0, TAU); g.fill();
       g.restore();
     }
+    g.globalAlpha = env.lightsOn ? 0.3 : 0.8;
+    for (const it of scene.items) if (it.glow) put(g, it.glow);
     g.restore();
   }
 

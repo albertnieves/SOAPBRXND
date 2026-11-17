@@ -5,6 +5,7 @@
 import type { RoomArtwork, RoomData, RoomItem, RoomWasher } from '@/modules/catalog/room';
 import { artTone, drawPiece, patternFill, repFor } from './art';
 import { IRI } from './chars';
+import { NEON_BOX, NEON_PATHS } from './neon';
 import {
   box, COLS, cyl, ellipse, FONT_PX, FONT_SANS, hull, INK, lgrad, litFace, mix, onFloor, onX, onY, P, poly, rgrad, rng, ROWS, rrect, seg,
   shade, sprite, TAU, TH, TILE_BAND, TW, vgrad, WALL, xFace, yFace, zFace, type G, type Pt, type Sprite,
@@ -32,6 +33,8 @@ export type Item = {
   bias?: number;
   shadow?: boolean;
   mask?: { w: number; h: number; k: number; a: Uint8Array };
+  /** Capa que emite luz (neón): se suma encima del tinte de la sala. */
+  glow?: Sprite;
 };
 export type Scene = {
   bg: Sprite; items: Item[]; lights: Light[]; clip: Pt[]; blocked: Set<string>;
@@ -135,9 +138,9 @@ function drawWalls(g: G, env: Env, data: RoomData) {
     g.fillStyle = C.cream; g.fillRect(wx + ww / 2 - 1.5, wy, 3, wh); g.fillRect(wx, wy + wh * 0.42, ww, 3);
     g.strokeStyle = INK; g.lineWidth = 1.5; g.strokeRect(wx - 4, wy - 4, ww + 8, wh + 8); g.strokeRect(wx, wy, ww, wh);
     g.fillStyle = C.cream; g.fillRect(wx - 8, wy + wh + 4, ww + 16, 5); g.strokeRect(wx - 8, wy + wh + 4, ww + 16, 5);
-    // estantes de detrás del mostrador
+    // estante de detrás del mostrador (debajo va el neón)
     const sx = 8.35 * TW, sw = 3.4 * TW;
-    [70, 116].forEach((v, row) => {
+    [56].forEach((v, row) => {
       const rr = rng(40 + row);
       let u = sx + 6;
       while (u < sx + sw - 16) {
@@ -327,6 +330,38 @@ function build(env: Env, data: RoomData): { items: Item[]; lights: Light[]; seat
     label(g, 'SALIDA', w / 2, 11, '#8ff0a4', 700, 9.5, 38, FONT_PX);
   });
   { const [x, y] = P(0.4, 8.3, 150); lights.push({ x, y, rx: 70, ry: 60, color: '#8ff0a4', on: 0.05, off: 0.16 }); }
+
+  /* --- pared derecha: neón rojo detrás de Daniel --- */
+  {
+    const RED = '#ff2338', x0 = 8.12, x1 = 11.86, z0 = 106, z1 = 180;
+    const paths = typeof Path2D === 'undefined' ? [] : NEON_PATHS.map((d) => new Path2D(d));
+    /** Coloca el lettering centrado en la placa y llama a `fn` en unidades del SVG. */
+    const inPlate = (g: G, w: number, h: number, fn: (s: number) => void) => {
+      const [bx, by, bw, bh] = NEON_BOX, s = Math.min((w - 12) / bw, (h - 10) / bh);
+      g.save(); g.translate((w - bw * s) / 2 - bx * s, (h - bh * s) / 2 - by * s); g.scale(s, s);
+      g.lineJoin = 'round'; g.lineCap = 'round'; fn(s); g.restore();
+    };
+    const tubes = (g: G, s: number) => {
+      glow(g, RED, 14); g.strokeStyle = 'rgba(255,35,56,.5)'; g.lineWidth = 2.2 / s; paths.forEach((p) => g.stroke(p));
+      glow(g, RED, 5); g.fillStyle = RED; g.strokeStyle = RED; g.lineWidth = 1.1 / s; paths.forEach((p) => { g.stroke(p); g.fill(p); });
+      g.shadowBlur = 0; g.fillStyle = '#ffb3ba'; paths.forEach((p) => g.fill(p));
+    };
+    const sign = rightWall({ id: 'neon-frase', box: [x0, 0, x1, 0.02] }, x0, x1, z0, z1, (g, w, h) => {
+      // placa de metacrilato con sus cuatro tornillos
+      rrect(g, 1, 1, w - 2, h - 2, 5); g.fillStyle = 'rgba(255,255,255,.035)'; g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.14)'; g.lineWidth = 1; g.stroke();
+      [[6, 6], [w - 6, 6], [6, h - 6], [w - 6, h - 6]].forEach(([x, y]) => ellipse(g, x!, y!, 1.6, 1.6, '#c9c9d2', INK, 0.6));
+      inPlate(g, w, h, (s) => {
+        g.save(); g.translate(1.4 / s, 2 / s); g.fillStyle = 'rgba(0,0,0,.45)'; paths.forEach((p) => g.fill(p)); g.restore(); // sombra del tubo
+        tubes(g, s);
+      });
+    });
+    // los tubos dan luz propia: se vuelven a sumar después del tinte de la sala
+    const w = (x1 - x0) * TW, h = z1 - z0, b = sign.spr;
+    sign.glow = sprite(b.x, b.y, b.x + b.w, b.y + b.h, env.res, (g) => onY(g, x0, 0, z1, () => inPlate(g, w, h, (s) => tubes(g, s))));
+    const [lx, ly] = P(10, 0.3, 140);
+    lights.push({ x: lx, y: ly, rx: 170, ry: 80, color: RED, on: 0.07, off: 0.22 });
+  }
 
   /* --- pared derecha: reloj --- */
   const clock = rightWall({ id: 'clock', box: [7.3, 0, 7.9, 0.02] }, 7.34, 7.94, 174, 204, (g, w, h) => {
