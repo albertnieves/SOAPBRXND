@@ -70,7 +70,7 @@ describe('catálogo incompleto', () => {
 });
 
 describe('roomData', () => {
-  it('como mucho tres lavadoras, por número y sin borradores', () => {
+  it('como mucho cuatro lavadoras, por número y sin borradores', () => {
     const r = roomData(view());
     expect(r.washers.map((w) => [w.number, w.phase])).toEqual([['01', 'abierto'], ['02', 'anunciado'], ['03', 'llave']]);
     expect(r.washers[0]!.href).toBe('/drops/first-signal');
@@ -80,6 +80,14 @@ describe('roomData', () => {
     const tee = r.items.find((i) => i.slug === 'tee-pompa-repeat')!;
     expect(tee).toMatchObject({ href: '/p/tee-pompa-repeat', priceCents: 3500, sprite: 'tee', purchasable: true });
     expect(r.items.find((i) => i.slug === 'panuelo-ajedrez-lavanderia')!.stockLabel).toBe('AGOTADO');
+  });
+  it('cada pieza trae sus variantes y su arte para la ficha rápida de la sala', () => {
+    const r = roomData(view());
+    const tee = r.items.find((i) => i.slug === 'tee-pompa-repeat')!;
+    expect(tee.variants.map((v) => v.label)).toEqual(['S', 'M', 'L', 'XL']);
+    expect(tee).toMatchObject({ artSlug: 'pompa-repeat', phase: 'abierto' });
+    expect(r.washers[0]!.copy.length).toBeGreaterThan(0);
+    expect(r.artworks[0]!.story.length).toBeGreaterThan(0);
   });
   it('la pared de artes enlaza a cada arte', () => {
     const r = roomData(view());

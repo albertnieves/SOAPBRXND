@@ -13,7 +13,6 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
-      { source: '/room/:path*', headers: [{ key: 'Cache-Control', value: 'public, max-age=300, must-revalidate' }] },
     ];
   },
 };
