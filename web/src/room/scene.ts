@@ -91,7 +91,7 @@ function sky(g: G, w: number, h: number, light: Daylight) {
   }
 }
 
-function drawWalls(g: G, env: Env, data: RoomData) {
+function drawWalls(g: G, env: Env) {
   const r = rng(11), RW = COLS * TW, LW2 = ROWS * TW, bandTop = WALL - TILE_BAND;
   const wall = (w: number, base: string, grout: string, tile: string) => {
     g.fillStyle = vgrad(g, 0, bandTop, [[0, shade(base, -0.28)], [1, base]]); g.fillRect(0, 0, w, bandTop);
@@ -115,9 +115,9 @@ function drawWalls(g: G, env: Env, data: RoomData) {
     wall(RW, C.wallR, C.grout, C.tile);
     g.fillStyle = lgrad(g, 0, 0, 70, 0, [[0, 'rgba(0,0,0,.34)'], [1, 'rgba(0,0,0,0)']]); g.fillRect(0, 0, 70, WALL);
     // tubería
-    g.fillStyle = vgrad(g, 12, 19, [[0, '#b9b9c4'], [0.5, '#7b7b88'], [1, '#3f3f49']]); g.fillRect(8, 12, RW - 8, 7);
-    g.strokeStyle = INK; g.lineWidth = 1; g.strokeRect(8, 12, RW - 8, 7);
-    for (let u = 44; u < RW; u += 96) { g.fillStyle = '#5b5b66'; g.fillRect(u, 9, 6, 13); g.strokeRect(u, 9, 6, 13); }
+    g.fillStyle = vgrad(g, 5, 12, [[0, '#b9b9c4'], [0.5, '#7b7b88'], [1, '#3f3f49']]); g.fillRect(8, 5, RW - 8, 7);
+    g.strokeStyle = INK; g.lineWidth = 1; g.strokeRect(8, 5, RW - 8, 7);
+    for (let u = 44; u < RW; u += 96) { g.fillStyle = '#5b5b66'; g.fillRect(u, 2, 6, 13); g.strokeRect(u, 2, 6, 13); }
     // rótulo de letras retroiluminadas
     const cx = 1.05 * TW + (3.9 * TW) / 2;
     g.save();
@@ -139,42 +139,11 @@ function drawWalls(g: G, env: Env, data: RoomData) {
     g.fillStyle = C.cream; g.fillRect(wx + ww / 2 - 1.5, wy, 3, wh); g.fillRect(wx, wy + wh * 0.42, ww, 3);
     g.strokeStyle = INK; g.lineWidth = 1.5; g.strokeRect(wx - 4, wy - 4, ww + 8, wh + 8); g.strokeRect(wx, wy, ww, wh);
     g.fillStyle = C.cream; g.fillRect(wx - 8, wy + wh + 4, ww + 16, 5); g.strokeRect(wx - 8, wy + wh + 4, ww + 16, 5);
-    // estante de detrás del mostrador (debajo va el neón)
-    const sx = 8.35 * TW, sw = 3.4 * TW;
-    [56].forEach((v, row) => {
-      const rr = rng(40 + row);
-      let u = sx + 6;
-      while (u < sx + sw - 16) {
-        const it = data.items[Math.floor(rr() * Math.max(1, data.items.length))];
-        const kind = rr();
-        if (kind < 0.55 && it) { // pila de prendas dobladas
-          const n = 2 + Math.floor(rr() * 3), bw = 20;
-          for (let i = 0; i < n; i++) {
-            const piece = data.items[(Math.floor(rr() * 97) + i) % data.items.length]!;
-            rrect(g, u, v - 6 - i * 6, bw, 6, 2); g.fillStyle = patternFill(g, piece.pattern, 7); g.fill();
-            g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(u + bw - 5, v - 6 - i * 6, 5, 6); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
-          }
-          u += bw + 7;
-        } else if (kind < 0.8) { // caja de detergente
-          const bh = 16 + rr() * 8, col = [C.lilac, '#f4b8c9', C.neon, '#ffd36b'][Math.floor(rr() * 4)]!;
-          g.fillStyle = col; g.fillRect(u, v - bh, 13, bh); g.fillStyle = 'rgba(255,255,255,.75)'; g.fillRect(u + 2, v - bh + 4, 9, 5);
-          g.strokeStyle = INK; g.lineWidth = 1; g.strokeRect(u, v - bh, 13, bh); u += 18;
-        } else { // botella
-          const col = [C.neon, '#f4b8c9', '#8ff0a4'][Math.floor(rr() * 3)]!;
-          rrect(g, u, v - 17, 9, 17, 2.5); g.fillStyle = col; g.fill(); g.strokeStyle = INK; g.lineWidth = 1; g.stroke();
-          g.fillStyle = INK; g.fillRect(u + 2.5, v - 21, 4, 4); u += 14;
-        }
-      }
-      g.fillStyle = vgrad(g, v, v + 5, [[0, C.wood], [1, C.woodD]]); g.fillRect(sx, v, sw, 5);
-      g.strokeStyle = INK; g.lineWidth = 1.2; g.strokeRect(sx, v, sw, 5);
-      g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(sx + 2, v + 5, sw, 4);
-      [sx + 14, sx + sw - 20].forEach((bx) => { g.fillStyle = '#3a3a42'; g.beginPath(); g.moveTo(bx, v + 5); g.lineTo(bx + 6, v + 5); g.lineTo(bx, v + 15); g.closePath(); g.fill(); });
-    });
-    // pizarra de tarifas
-    const px = 7.12 * TW;
-    g.fillStyle = '#17171b'; g.fillRect(px, 28, 46, 30); g.strokeStyle = C.warm; g.lineWidth = 1.5; g.strokeRect(px, 28, 46, 30);
-    label(g, 'TALLAS', px + 23, 36, '#f2f0eb', 700, 7, 40, FONT_PX);
-    label(g, 'S · M · L · XL', px + 23, 47, C.neon, 400, 6.5, 40, FONT_PX);
+    // pizarra de tallas, detrás del mostrador y debajo del neón
+    const px = 10.7 * TW, py = 104;
+    g.fillStyle = '#17171b'; g.fillRect(px, py, 46, 30); g.strokeStyle = C.warm; g.lineWidth = 1.5; g.strokeRect(px, py, 46, 30);
+    label(g, 'TALLAS', px + 23, py + 8, '#f2f0eb', 700, 7, 40, FONT_PX);
+    label(g, 'S · M · L · XL', px + 23, py + 19, C.neon, 400, 6.5, 40, FONT_PX);
   });
   onX(g, 0, ROWS, WALL, () => {
     wall(LW2, C.wallL, shade(C.grout, -0.08), shade(C.tile, -0.07));
@@ -359,11 +328,11 @@ function build(env: Env, data: RoomData): { items: Item[]; lights: Light[]; seat
 
   /* --- pared derecha: neón rojo detrás de Daniel --- */
   {
-    const RED = '#ff2338', x0 = 8.12, x1 = 11.86, z0 = 106, z1 = 180;
+    const RED = '#ff2338', x0 = 7.12, x1 = 11.94, z0 = 159, z1 = 236;
     const paths = typeof Path2D === 'undefined' ? [] : NEON_PATHS.map((d) => new Path2D(d));
     /** Coloca el lettering centrado en la placa y llama a `fn` en unidades del SVG. */
     const inPlate = (g: G, w: number, h: number, fn: (s: number) => void) => {
-      const [bx, by, bw, bh] = NEON_BOX, s = Math.min((w - 12) / bw, (h - 10) / bh);
+      const [bx, by, bw, bh] = NEON_BOX, s = Math.min((w - 10) / bw, (h - 7) / bh);
       g.save(); g.translate((w - bw * s) / 2 - bx * s, (h - bh * s) / 2 - by * s); g.scale(s, s);
       g.lineJoin = 'round'; g.lineCap = 'round'; fn(s); g.restore();
     };
@@ -385,19 +354,20 @@ function build(env: Env, data: RoomData): { items: Item[]; lights: Light[]; seat
     // los tubos dan luz propia: se vuelven a sumar después del tinte de la sala
     const w = (x1 - x0) * TW, h = z1 - z0, b = sign.spr;
     sign.glow = sprite(b.x, b.y, b.x + b.w, b.y + b.h, env.res, (g) => onY(g, x0, 0, z1, () => inPlate(g, w, h, (s) => tubes(g, s))));
-    const [lx, ly] = P(10, 0.3, 140);
-    lights.push({ x: lx, y: ly, rx: 170, ry: 80, color: RED, on: 0.07, off: 0.22 });
+    const [lx, ly] = P(9.6, 0.3, 190);
+    lights.push({ x: lx, y: ly, rx: 210, ry: 95, color: RED, on: 0.07, off: 0.22 });
   }
 
-  /* --- pared derecha: reloj --- */
-  const clock = rightWall({ id: 'clock', box: [7.3, 0, 7.9, 0.02] }, 7.34, 7.94, 174, 204, (g, w, h) => {
+  /* --- pared del fondo: reloj, en la esquina junto al vestidor --- */
+  const CK = 0.34, CZ = 176;
+  const clock = rightWall({ id: 'clock', box: [CK - 0.04, 0, CK + 0.56, 0.02] }, CK, CK + 0.6, CZ - 30, CZ, (g, w, h) => {
     ellipse(g, w / 2 + 1.5, h / 2 + 2, 14, 14, 'rgba(0,0,0,.35)');
     ellipse(g, w / 2, h / 2, 14, 14, '#f7f5f0', INK, 2);
     for (let i = 0; i < 12; i++) { const a = (i / 12) * TAU; seg(g, [w / 2 + Math.cos(a) * 10.5, h / 2 + Math.sin(a) * 10.5], [w / 2 + Math.cos(a) * 12, h / 2 + Math.sin(a) * 12], INK, i % 3 ? 0.8 : 1.6); }
   });
   clock.live = (g) => {
     const d = new Date(), hh = ((d.getHours() % 12) + d.getMinutes() / 60) / 12, mm = (d.getMinutes() + d.getSeconds() / 60) / 60, ss = d.getSeconds() / 60;
-    onY(g, 7.34, 0, 204, () => {
+    onY(g, CK, 0, CZ, () => {
       const cx = 0.3 * TW, cy = 15;
       const hand = (f: number, len: number, col: string, lw: number) => { const a = f * TAU - Math.PI / 2; seg(g, [cx, cy], [cx + Math.cos(a) * len, cy + Math.sin(a) * len], col, lw); };
       hand(hh, 6, INK, 2); hand(mm, 9.5, INK, 1.4); hand(ss, 10.5, '#d93f44', 0.8);
@@ -745,7 +715,7 @@ export function buildScene(data: RoomData, env: Env): Scene {
   const { items, lights, seats } = build(env, data);
   const x0 = P(0, ROWS)[0] - 24, x1 = P(COLS, 0)[0] + 24, y0 = -WALL - 24, y1 = (COLS + ROWS) * TH + 30;
   const bg = sprite(x0, y0, x1, y1, env.res, (g) => {
-    drawWalls(g, env, data);
+    drawWalls(g, env);
     drawFloor(g);
     drawRugs(g, env.brand);
     // sombras de contacto: la luz viene del fondo izquierdo
